@@ -1,12 +1,12 @@
 # ROADMAP.md
 
-> **Current Phase**: Phase 3
+> **Current Phase**: Phase 4
 > **Milestone**: v1.0
 
 ## Must-Haves (from SPEC)
 - [ ] Pre-signed URL upload pipeline
 - [ ] S3 storage integration
-- [ ] DynamoDB metadata tracking
+- [x] DynamoDB metadata tracking
 - [ ] Dashboard with glassmorphism/dark mode
 
 ## Phases
@@ -22,7 +22,7 @@
 **Requirements**: REQ-03, REQ-04
 
 ### Phase 3: Dashboard & Metadata Sync
-**Status**: ⬜ Not Started
+**Status**: ✅ Completed
 **Objective**: Implement DynamoDB record creation upon successful S3 upload, and build a file dashboard grid to visually list, preview, and manage uploaded files.
 **Requirements**: REQ-05, REQ-06
 
