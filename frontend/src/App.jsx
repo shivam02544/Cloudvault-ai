@@ -3,8 +3,10 @@ import Navbar from './components/Navbar';
 import UploadDropzone from './components/UploadDropzone';
 import {
   HardDrive, FilePlus, FolderOpen,
-  LayoutGrid, List as ListIcon, Image, FileText, File, Loader2
+  LayoutGrid, List as ListIcon, Image, FileText, File, Loader2, Eye, Copy, Trash2
 } from 'lucide-react';
+import { useToast } from './context/ToastContext';
+import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -30,6 +32,39 @@ function App() {
   const [viewMode, setViewMode] = useState('grid');
   const [activeCategory, setActiveCategory] = useState('All Files');
   const [loading, setLoading] = useState(true);
+  const { addToast } = useToast();
+
+  const handleCopyUrl = async (fileId) => {
+    try {
+      const res = await axios.get(`${API_URL}/files/${fileId}/url`);
+      await navigator.clipboard.writeText(res.data.url);
+      addToast('Link copied to clipboard', 'success');
+    } catch (err) {
+      console.error(err);
+      addToast('Failed to copy link', 'error');
+    }
+  };
+
+  const handlePreview = async (fileId) => {
+    try {
+      const res = await axios.get(`${API_URL}/files/${fileId}/url`);
+      window.open(res.data.url, '_blank');
+    } catch (err) {
+      console.error(err);
+      addToast('Failed to open preview', 'error');
+    }
+  };
+
+  const handleDelete = async (fileId) => {
+    try {
+      await axios.delete(`${API_URL}/files/${fileId}`);
+      setFiles((prev) => prev.filter((f) => f.fileId !== fileId));
+      addToast('File deleted', 'success');
+    } catch (err) {
+      console.error(err);
+      addToast('Failed to delete file', 'error');
+    }
+  };
 
   // Fetch files from DynamoDB via GET /files — once on mount only (DECISIONS.md Phase 3)
   useEffect(() => {
@@ -222,6 +257,31 @@ function App() {
                     {formatSize(file.size)}
                   </span>
                 )}
+
+                {/* Hover actions overlay */}
+                <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm rounded-2xl flex items-center justify-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <button
+                    onClick={() => handlePreview(file.fileId)}
+                    className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors shadow-lg"
+                    title="Preview"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleCopyUrl(file.fileId)}
+                    className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors shadow-lg"
+                    title="Copy Link"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(file.fileId)}
+                    className="p-2 bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 rounded-lg transition-colors shadow-lg"
+                    title="Delete"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
