@@ -1,13 +1,13 @@
 # ROADMAP.md
 
-> **Current Phase**: Phase 4
+> **Current Phase**: Done (Milestone v1.0 complete)
 > **Milestone**: v1.0
 
 ## Must-Haves (from SPEC)
 - [ ] Pre-signed URL upload pipeline
 - [ ] S3 storage integration
 - [x] DynamoDB metadata tracking
-- [ ] Dashboard with glassmorphism/dark mode
+- [x] Dashboard with glassmorphism/dark mode
 
 ## Phases
 
@@ -27,6 +27,6 @@
 **Requirements**: REQ-05, REQ-06
 
 ### Phase 4: Polish, Actions, & Launch
-**Status**: ⬜ Not Started
+**Status**: ✅ Completed
 **Objective**: Add robust error handling, toast notifications, one-click actions (copy URL, delete), and responsive micro-animations to reach the premium UI/UX standard.
 **Requirements**: REQ-07

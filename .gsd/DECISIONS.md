@@ -68,3 +68,20 @@ Fields stored per file:
 - `App.jsx` shows loading spinner while `GET /files` is in-flight on mount.
 - Empty state shown when `files.length === 0` and not loading.
 
+## Phase 4 Decisions
+**Date:** 2026-03-30
+
+### Scope
+- **Pre-signed URL Strategy:** Hybrid approach. Short expiry (5-10m) URLs generated on-demand via `GET /files/{fileId}/url`.
+- **Delete Strategy:** Soft delete (`status = 'deleted'`) in DynamoDB. Kept safe in S3, hidden from UI.
+- **Toasts:** Build custom lightweight Tailwind toast (glassmorphism) to avoid explicit dependencies.
+- **Actions Placement:** Hover overlay icons (Preview, Copy, Delete) on file cards with subtle fade-in.
+
+### Approach
+- Chose: Two new Lambdas — `DELETE /files/{fileId}` for soft delete, `GET /files/{fileId}/url` for generating the on-demand S3 pre-signed URL.
+- Reason: Keeps the architecture lightweight, functional, SaaS-aligned. Keeps permissions strictly bounded (e.g. `DynamoDBWritePolicy` on the delete endpoint, `S3ReadPolicy` on the URL generator).
+
+### Constraints
+- S3 bucket block public access remains intact.
+- Lazy URL generation only fetches when user previews or copies.
+- Toasts correctly bound to success, copy events, delete events, and errors.
