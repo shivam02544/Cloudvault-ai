@@ -1,0 +1,125 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: CloudVault AI Backend Infrastructure
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 256
+    Runtime: nodejs20.x
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        UPLOAD_BUCKET: !Ref StorageBucket
+        FILE_TABLE: !Ref FileMetadataTable
+
+Resources:
+  # HTTP API with CORS
+  CloudVaultApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+
+  # Storage Bucket
+  StorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "cloudvault-ai-storage-${AWS::AccountId}-${AWS::Region}"
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - PUT
+              - GET
+              - POST
+            AllowedOrigins:
+              - "*"
+            ExposedHeaders:
+              - ETag
+            MaxAge: 3000
+
+  # DynamoDB Table
+  FileMetadataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "CloudVaultFiles"
+      AttributeDefinitions:
+        - AttributeName: "userId"
+          AttributeType: "S"
+        - AttributeName: "fileId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "userId"
+          KeyType: "HASH"
+        - AttributeName: "fileId"
+          KeyType: "RANGE"
+      BillingMode: PAY_PER_REQUEST
+
+  # Lambda: Get Upload URL (Phase 1)
+  GetUploadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/getUploadUrl.handler
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref StorageBucket
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /files/upload-url
+            Method: POST
+
+  # Lambda: Confirm Upload — write metadata to DynamoDB (Phase 3)
+  ConfirmUploadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/confirmUpload.handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /files/confirm
+            Method: POST
+
+  # Lambda: List Files — query DynamoDB by userId (Phase 3)
+  ListFilesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/listFiles.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /files
+            Method: GET
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${CloudVaultApi}.execute-api.${AWS::Region}.amazonaws.com/"

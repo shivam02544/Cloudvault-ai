@@ -1,0 +1,61 @@
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+
+const client = new DynamoDBClient({ region: process.env.AWS_REGION });
+const docClient = DynamoDBDocumentClient.from(client);
+
+exports.handler = async (event) => {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+  };
+
+  try {
+    const userId = 'usr_test_123'; // Hardcoded for MVP
+    const tableName = process.env.FILE_TABLE;
+
+    // Query by userId (HASH key) — NOT a Scan (DECISIONS.md Phase 3)
+    const result = await docClient.send(
+      new QueryCommand({
+        TableName: tableName,
+        KeyConditionExpression: 'userId = :uid',
+        ExpressionAttributeValues: {
+          ':uid': userId,
+        },
+        // Return newest files first (requires a GSI for full correctness,
+        // but for MVP with PAY_PER_REQUEST this gives us the right sort order
+        // when DynamoDB returns in range key order — uploadedAt ordering
+        // is handled client-side via sort after fetch)
+        ScanIndexForward: false,
+      })
+    );
+
+    // Return metadata + S3 key only — pre-signed read URLs generated lazily on demand
+    // (DECISIONS.md Phase 3: do NOT generate URLs eagerly for all files)
+    const files = (result.Items || []).map((item) => ({
+      fileId: item.fileId,
+      filename: item.filename,
+      contentType: item.contentType,
+      size: item.size,
+      uploadedAt: item.uploadedAt,
+      status: item.status,
+      key: item.key,
+    }));
+
+    // Sort by uploadedAt descending (newest first) — client-side for MVP
+    files.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ files }),
+    };
+  } catch (error) {
+    console.error('listFiles error:', error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Failed to list files' }),
+    };
+  }
+};
