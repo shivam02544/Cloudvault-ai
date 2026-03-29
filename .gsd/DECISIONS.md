@@ -48,12 +48,23 @@ Fields stored per file:
 
 ### Approach
 - Chose: Two new Lambda functions — `confirmUpload` (`POST /files/confirm`) and `listFiles` (`GET /files`).
-- `GET /files` returns metadata + freshly generated pre-signed READ URLs (60-second expiry) per file.
-- Reason: Keeps S3 private, industry-standard secure access, no public bucket needed.
+- `GET /files` returns **metadata + S3 `key` only** — pre-signed read URLs generated lazily (on demand, e.g., preview click), NOT eagerly for all files.
+- Reason: Reduces unnecessary Lambda compute; avoids generating many unused expiring URLs; better scalability.
 
 ### Constraints
 - S3 Block Public Access remains ON. No public-read ACLs.
-- Pre-signed read URLs generated server-side with `GetObjectCommand`.
+- Pre-signed read URLs generated server-side on demand (`GetObjectCommand`), not on list.
 - Use DynamoDB `Query` (not `Scan`) keyed on `userId`.
 - Both new Lambdas added under the same `CloudVaultApi` HTTP API (ensures CORS consistency).
+- `GET /files` called **once on mount only** — no polling, no repeated calls.
+
+### Backend Validation & Error Handling
+- `confirmUpload.js` must validate required fields: `fileId`, `key`, `filename`, `contentType`. Reject with 400 if any missing.
+- Both Lambdas must have try/catch returning proper HTTP codes: 200 success, 400 bad request, 500 server error.
+
+### Frontend Behaviour
+- `POST /files/confirm` only called AFTER confirmed successful S3 PUT (not before, not on error).
+- Confirm failure handled gracefully — show error, do not crash.
+- `App.jsx` shows loading spinner while `GET /files` is in-flight on mount.
+- Empty state shown when `files.length === 0` and not loading.
 
