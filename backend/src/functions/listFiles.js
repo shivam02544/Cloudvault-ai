@@ -32,15 +32,17 @@ exports.handler = async (event) => {
 
     // Return metadata + S3 key only — pre-signed read URLs generated lazily on demand
     // (DECISIONS.md Phase 3: do NOT generate URLs eagerly for all files)
-    const files = (result.Items || []).map((item) => ({
-      fileId: item.fileId,
-      filename: item.filename,
-      contentType: item.contentType,
-      size: item.size,
-      uploadedAt: item.uploadedAt,
-      status: item.status,
-      key: item.key,
-    }));
+    const files = (result.Items || [])
+      .filter((item) => item.status !== 'deleted')
+      .map((item) => ({
+        fileId: item.fileId,
+        filename: item.filename,
+        contentType: item.contentType,
+        size: item.size,
+        uploadedAt: item.uploadedAt,
+        status: item.status,
+        key: item.key,
+      }));
 
     // Sort by uploadedAt descending (newest first) — client-side for MVP
     files.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));

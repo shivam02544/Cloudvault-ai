@@ -119,6 +119,42 @@ Resources:
             Path: /files
             Method: GET
 
+  # Lambda: Delete File — soft delete in DynamoDB (Phase 4)
+  DeleteFileFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/deleteFile.handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /files/{fileId}
+            Method: DELETE
+
+  # Lambda: Get File URL — lazy presigned S3 url (Phase 4)
+  GetFileUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/getFileUrl.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+        - S3ReadPolicy:
+            BucketName: !Ref StorageBucket
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /files/{fileId}/url
+            Method: GET
+
 Outputs:
   ApiEndpoint:
     Description: "API Gateway endpoint URL"
