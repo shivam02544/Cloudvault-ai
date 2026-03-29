@@ -70,8 +70,24 @@ const UploadDropzone = ({ onUploadSuccess }) => {
 
       setProgress(100);
       setSuccess(true);
+
+      // Confirm upload — write metadata to DynamoDB (Phase 3)
+      // Called ONLY after confirmed S3 PUT success (DECISIONS.md)
+      // Failure is non-fatal: file is safely in S3, metadata write failed silently
+      try {
+        await axios.post(`${API_URL}/files/confirm`, {
+          fileId,
+          key,
+          filename: file.name,
+          contentType: file.type,
+          size: file.size,
+        });
+      } catch (confirmErr) {
+        console.error('Metadata confirm failed (non-fatal):', confirmErr);
+      }
+
       if (onUploadSuccess) {
-        onUploadSuccess({ fileId, name: file.name, key, contentType: file.type });
+        onUploadSuccess({ fileId, name: file.name, key, contentType: file.type, size: file.size });
       }
     } catch (err) {
       console.error('Upload error:', err);

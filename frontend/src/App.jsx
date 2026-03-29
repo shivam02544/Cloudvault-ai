@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import UploadDropzone from './components/UploadDropzone';
 import {
   HardDrive, FilePlus, FolderOpen,
-  LayoutGrid, List as ListIcon, Image, FileText, File
+  LayoutGrid, List as ListIcon, Image, FileText, File, Loader2
 } from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // Render an icon based on MIME type
 const FileIcon = ({ type, className }) => {
@@ -13,24 +15,52 @@ const FileIcon = ({ type, className }) => {
   return <File className={className} />;
 };
 
+// Format bytes to human-readable string
+const formatSize = (bytes) => {
+  if (!bytes || bytes === 0) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 const CATEGORIES = ['All Files', 'Images', 'PDFs'];
 
 function App() {
   const [files, setFiles] = useState([]);
   const [viewMode, setViewMode] = useState('grid');
   const [activeCategory, setActiveCategory] = useState('All Files');
+  const [loading, setLoading] = useState(true);
 
+  // Fetch files from DynamoDB via GET /files — once on mount only (DECISIONS.md Phase 3)
+  useEffect(() => {
+    const fetchFiles = async () => {
+      try {
+        const res = await fetch(`${API_URL}/files`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        setFiles(data.files || []);
+      } catch (err) {
+        console.error('Failed to fetch files:', err);
+        // Non-fatal — dashboard shows empty state if API is unreachable
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFiles();
+  }, []); // Empty deps = run once on mount
+
+  // Optimistic update: add newly uploaded file immediately to local state
   const handleUploadSuccess = (fileData) => {
-    setFiles((prev) => [
-      {
-        id: fileData.fileId,
-        name: fileData.name,
-        key: fileData.key,
-        contentType: fileData.contentType,
-        uploadedAt: new Date().toISOString(),
-      },
-      ...prev,
-    ]);
+    const newFile = {
+      fileId: fileData.fileId,
+      filename: fileData.name,
+      key: fileData.key,
+      contentType: fileData.contentType,
+      size: fileData.size || 0,
+      uploadedAt: new Date().toISOString(),
+      status: 'active',
+    };
+    setFiles((prev) => [newFile, ...prev]);
   };
 
   const filteredFiles = files.filter((f) => {
@@ -91,7 +121,7 @@ function App() {
           <UploadDropzone onUploadSuccess={handleUploadSuccess} />
         </div>
 
-        {/* Section Header: Recent Files */}
+        {/* Section Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-semibold text-slate-300 flex items-center gap-2">
             <FilePlus className="h-4 w-4 text-purple-400" />
@@ -114,14 +144,23 @@ function App() {
                 {cat}
               </button>
             ))}
-            <span className="text-xs text-slate-700 ml-1">
-              {filteredFiles.length} {filteredFiles.length === 1 ? 'file' : 'files'}
-            </span>
+            {!loading && (
+              <span className="text-xs text-slate-700 ml-1">
+                {filteredFiles.length} {filteredFiles.length === 1 ? 'file' : 'files'}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* File Grid / List */}
-        {filteredFiles.length === 0 ? (
+        {/* File List Area */}
+        {loading ? (
+          /* Loading state — spinner while GET /files is in-flight */
+          <div className="flex flex-col items-center justify-center py-24">
+            <Loader2 className="h-8 w-8 text-blue-400 animate-spin mb-4" />
+            <p className="text-slate-500 text-sm">Loading your files…</p>
+          </div>
+        ) : filteredFiles.length === 0 ? (
+          /* Empty state */
           <div className="flex flex-col items-center justify-center py-24 border border-dashed border-slate-700/40 rounded-2xl">
             <div className="h-14 w-14 rounded-2xl bg-slate-800/60 flex items-center justify-center text-slate-700 mb-4">
               <FolderOpen className="h-7 w-7" />
@@ -130,6 +169,7 @@ function App() {
             <p className="text-slate-700 text-xs mt-1">Upload a file above to get started</p>
           </div>
         ) : (
+          /* File grid or list */
           <div
             className={
               viewMode === 'grid'
@@ -139,7 +179,7 @@ function App() {
           >
             {filteredFiles.map((file) => (
               <div
-                key={file.id}
+                key={file.fileId}
                 className={`glass group relative transition-all duration-200 hover:glow-blue ${
                   viewMode === 'grid'
                     ? 'p-5 flex flex-col cursor-default'
@@ -162,9 +202,9 @@ function App() {
                 <div className="min-w-0 flex-1">
                   <h3
                     className="text-sm font-medium text-slate-200 truncate"
-                    title={file.name}
+                    title={file.filename}
                   >
-                    {file.name}
+                    {file.filename}
                   </h3>
                   <p className="text-xs text-slate-600 mt-0.5">
                     {new Date(file.uploadedAt).toLocaleDateString('en-US', {
@@ -176,9 +216,11 @@ function App() {
                   </p>
                 </div>
 
-                {/* List-mode trailing label */}
+                {/* List-mode file size */}
                 {viewMode === 'list' && (
-                  <span className="text-xs text-slate-700 shrink-0">Uploaded</span>
+                  <span className="text-xs text-slate-600 shrink-0 font-mono">
+                    {formatSize(file.size)}
+                  </span>
                 )}
               </div>
             ))}
