@@ -29,3 +29,5 @@ Thumbs.db
 # GSD / Agents
 .agent/
 .gemini/
+.gsd/
+
