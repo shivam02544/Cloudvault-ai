@@ -61,6 +61,34 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // Compute isAdmin from JWT claims (stabilized with useMemo)
+  const isAdmin = React.useMemo(() => {
+    if (!idToken) return false;
+    try {
+      const base64Url = idToken.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      const claims = JSON.parse(jsonPayload);
+      
+      // DEBUG: confirm claims content in development
+      console.log('[AuthContext] JWT Claims:', claims);
+      
+      const groups = claims['cognito:groups'] || [];
+      const result = Array.isArray(groups) ? groups.includes('admin') : groups === 'admin';
+      
+      console.log('[AuthContext] isAdmin check:', { groups, result });
+      return result;
+    } catch (e) {
+      console.error('[AuthContext] JWT decode error:', e);
+      return false;
+    }
+  }, [idToken]);
+
   const login = (email, password) =>
     new Promise((resolve, reject) => {
       const authDetails = new AuthenticationDetails({ Username: email, Password: password });
@@ -107,8 +135,8 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    // Expose idToken as `token` — this is what the API Authorization header uses
-    <AuthContext.Provider value={{ user, token: idToken, loading, login, signup, confirmSignup, logout }}>
+    // Expose idToken as `token` and the calculated isAdmin flag
+    <AuthContext.Provider value={{ user, token: idToken, isAdmin, loading, login, signup, confirmSignup, logout }}>
       {children}
     </AuthContext.Provider>
   );

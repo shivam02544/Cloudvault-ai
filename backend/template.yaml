@@ -100,11 +100,20 @@ Resources:
           AttributeType: "S"
         - AttributeName: "fileId"
           AttributeType: "S"
+        - AttributeName: "sharingId"
+          AttributeType: "S"
       KeySchema:
         - AttributeName: "userId"
           KeyType: "HASH"
         - AttributeName: "fileId"
           KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        - IndexName: "SharingIndex"
+          KeySchema:
+            - AttributeName: "sharingId"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: "ALL"
       BillingMode: PAY_PER_REQUEST
 
   # ─── Lambda: Get Upload URL (Phase 1) ───────────────────────────────────────
@@ -116,6 +125,8 @@ Resources:
       Policies:
         - S3WritePolicy:
             BucketName: !Ref StorageBucket
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
       Events:
         ApiEvent:
           Type: HttpApi
@@ -130,9 +141,14 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: functions/confirmUpload.handler
+      Environment:
+        Variables:
+          ANALYZE_FUNCTION: !Ref AnalyzeImageFunction
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref FileMetadataTable
+        - LambdaInvokePolicy:
+            FunctionName: !Ref AnalyzeImageFunction
       Events:
         ApiEvent:
           Type: HttpApi
@@ -140,6 +156,30 @@ Resources:
             ApiId: !Ref CloudVaultApi
             Path: /files/confirm
             Method: POST
+
+  # ─── Lambda: Analyze Image (Phase 10) ───────────────────────────────────────
+  AnalyzeImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/analyzeImage.handler
+      Policies:
+        - RekognitionDetectOnlyPolicy: {}
+        - S3ReadPolicy:
+            BucketName: !Ref StorageBucket
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /files/{fileId}/analyze
+            Method: POST
+
+
 
   # ─── Lambda: List Files (Phase 3) ───────────────────────────────────────────
   ListFilesFunction:
@@ -193,6 +233,116 @@ Resources:
             ApiId: !Ref CloudVaultApi
             Path: /files/{fileId}/url
             Method: GET
+
+  # ─── Lambda: User Stats (Phase 7) ───────────────────────────────────────────
+  UserStatsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/userStats.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /files/stats
+            Method: GET
+
+  # ─── Lambda: Toggle Sharing (Phase 7) ───────────────────────────────────────
+  ToggleSharingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/toggleSharing.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /files/sharing
+            Method: POST
+
+  # ─── Lambda: Get Public File URL (Phase 7) ──────────────────────────────────
+  GetPublicFileUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/getPublicFileUrl.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+        - S3ReadPolicy:
+            BucketName: !Ref StorageBucket
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /s/{sharingId}
+            Method: GET
+            Auth:
+              Authorizer: NONE
+
+  # ─── Lambda: Update Tags (Phase 10) ──────────────────────────────────────────
+  UpdateTagsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/updateTags.handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /files/{fileId}/tags
+            Method: PATCH
+
+  # ─── Lambda: Admin List Moderation (Phase 10) ────────────────────────────────
+  AdminListModerationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/adminListModeration.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /admin/moderation/risky
+            Method: GET
+
+  # ─── Lambda: Admin Mark Safe (Phase 10) ──────────────────────────────────────
+  AdminMarkSafeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/adminMarkSafe.handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /admin/moderation/mark-safe
+            Method: POST
+
+
 
 Outputs:
   ApiEndpoint:

@@ -38,10 +38,25 @@ exports.handler = async (event) => {
       })
     );
 
+    const { q } = event.queryStringParameters || {};
+    const searchTerm = q?.toLowerCase().trim();
+
     // Return metadata + S3 key only — pre-signed read URLs generated lazily on demand
     // (DECISIONS.md Phase 3: do NOT generate URLs eagerly for all files)
     const files = (result.Items || [])
       .filter((item) => item.status !== 'deleted')
+      .filter((item) => {
+        if (!searchTerm) return true;
+        
+        const filename = (item.filename || "").toLowerCase();
+        const tags = (item.tags || []).map(t => t.toLowerCase());
+        
+        // Match filename OR tags (Partial Match supported)
+        const nameMatch = filename.includes(searchTerm);
+        const tagMatch = tags.some(tag => tag.includes(searchTerm));
+        
+        return nameMatch || tagMatch;
+      })
       .map((item) => ({
         fileId: item.fileId,
         filename: item.filename,
@@ -50,7 +65,11 @@ exports.handler = async (event) => {
         uploadedAt: item.uploadedAt,
         status: item.status,
         key: item.key,
+        tags: item.tags || [],
+        analyzed: item.analyzed || false,
+        moderationStatus: item.moderationStatus || 'SAFE',
       }));
+
 
     // Sort by uploadedAt descending (newest first) — client-side for MVP
     files.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
@@ -61,11 +80,16 @@ exports.handler = async (event) => {
       body: JSON.stringify({ files }),
     };
   } catch (error) {
-    console.error('listFiles error:', error);
+    const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
+    console.error(JSON.stringify({ 
+      event: 'LIST_FILES_ERROR', 
+      error: error.message, 
+      userId: userId || 'unknown' 
+    }));
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to list files' }),
+      body: JSON.stringify({ error: 'Internal Server Error', message: 'Failed to list files' }),
     };
   }
 };

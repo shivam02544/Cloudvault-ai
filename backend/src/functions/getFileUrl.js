@@ -68,14 +68,19 @@ exports.handler = async (event) => {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ url }),
+      body: JSON.stringify({ url: url }),
     };
   } catch (error) {
-    console.error('getFileUrl error:', error);
+    const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
+    console.error(JSON.stringify({ 
+      event: 'GET_FILE_URL_ERROR', 
+      error: error.message, 
+      userId: userId || 'unknown' 
+    }));
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to generate file URL' }),
+      body: JSON.stringify({ error: 'Internal Server Error', message: 'Failed to generate download URL' }),
     };
   }
 };

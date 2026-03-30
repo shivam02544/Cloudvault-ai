@@ -1,9 +1,15 @@
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, GetCommand } = require('@aws-sdk/lib-dynamodb');
 const { randomUUID } = require('crypto');
 
 // The SDK automatically pulls region from AWS_REGION environment variable
 const s3 = new S3Client({ region: process.env.AWS_REGION });
+const dbClient = new DynamoDBClient({ region: process.env.AWS_REGION });
+const docClient = DynamoDBDocumentClient.from(dbClient);
+
+const MAX_QUOTA_BYTES = 5 * 1024 * 1024 * 1024; // 5GB
 
 exports.handler = async (event) => {
   try {
@@ -29,6 +35,27 @@ exports.handler = async (event) => {
         body: JSON.stringify({ error: 'Unauthorized' }),
       };
     }
+
+    // Quota Enforcement (Phase 7 Wave 2)
+    const tableName = process.env.FILE_TABLE;
+    const statsRes = await docClient.send(
+      new GetCommand({
+        TableName: tableName,
+        Key: { userId, fileId: '__STATS__' },
+      })
+    );
+
+    const currentUsage = statsRes.Item?.totalBytesUsed || 0;
+    if (currentUsage + (size || 0) > MAX_QUOTA_BYTES) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Storage quota exceeded', 
+          message: `Uploading this file would exceed your 5GB limit. Current usage: ${Math.round(currentUsage / (1024 * 1024))}MB`
+        }),
+      };
+    }
     
     // Construct the S3 key
     // Using a clear pattern: userId/fileId-filename
@@ -48,6 +75,7 @@ exports.handler = async (event) => {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
       },
       body: JSON.stringify({
         uploadUrl,
@@ -56,10 +84,19 @@ exports.handler = async (event) => {
       }),
     };
   } catch (error) {
-    console.error('Error generating pre-signed URL:', error);
+    const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
+    console.error(JSON.stringify({
+      event: 'UPLOAD_URL_ERROR',
+      error: error.message,
+      userId: userId || 'unknown'
+    }));
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to generate upload URL' })
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+      },
+      body: JSON.stringify({ error: 'Internal Server Error', message: 'Failed to generate upload URL' })
     };
   }
 };

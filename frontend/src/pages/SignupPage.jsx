@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Cloud, UserPlus, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import OTPInput from '../components/OTPInput';
 
 export default function SignupPage() {
   const { signup, confirmSignup } = useAuth();
@@ -81,24 +82,19 @@ export default function SignupPage() {
                 </div>
               )}
 
-              <form onSubmit={handleVerify} className="space-y-4">
+              <form onSubmit={handleVerify} className="space-y-6">
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1.5 font-sans">Verification Code</label>
-                  <input
-                    id="verification-code"
-                    type="text"
-                    required
+                  <label className="block text-xs font-medium text-slate-400 mb-3 font-sans text-center">Verification Code</label>
+                  <OTPInput 
                     value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    className="w-full bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors text-center tracking-[0.5em] text-lg font-bold"
-                    placeholder="000000"
-                    maxLength={6}
+                    onChange={setCode}
+                    disabled={loading}
                   />
                 </div>
                 <button
                   id="verify-submit"
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || code.length < 6}
                   className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm py-2.5 rounded-xl transition-colors mt-2"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}

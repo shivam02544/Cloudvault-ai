@@ -57,7 +57,6 @@ exports.handler = async (event) => {
       body: JSON.stringify({ success: true, message: 'File deleted successfully' }),
     };
   } catch (error) {
-    console.error('deleteFile error:', error);
     if (error.name === 'ConditionalCheckFailedException') {
       return {
         statusCode: 404,
@@ -65,10 +64,16 @@ exports.handler = async (event) => {
         body: JSON.stringify({ error: 'File not found' }),
       };
     }
+    const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
+    console.error(JSON.stringify({ 
+      event: 'DELETE_FILE_ERROR', 
+      error: error.message, 
+      userId: userId || 'unknown' 
+    }));
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to delete file' }),
+      body: JSON.stringify({ error: 'Internal Server Error', message: 'Failed to delete file' }),
     };
   }
 };

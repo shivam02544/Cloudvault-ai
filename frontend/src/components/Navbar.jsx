@@ -1,8 +1,11 @@
 import { Cloud, Search, Bell, Settings, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
-  const { logout } = useAuth();
+  const { logout, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  console.log('[Navbar] Current isAdmin:', isAdmin);
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -31,6 +34,14 @@ const Navbar = () => {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
+            {isAdmin && (
+              <a
+                href="/admin"
+                className="text-xs font-semibold px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-all flex items-center gap-1.5"
+              >
+                Console
+              </a>
+            )}
             <button className="text-slate-400 hover:text-white transition-colors">
               <Bell className="h-5 w-5" />
             </button>
