@@ -1,5 +1,6 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { checkSuspension } = require('./shared/checkSuspension');
 
 const client = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -22,6 +23,11 @@ exports.handler = async (event) => {
       };
     }
 
+    const tableName = process.env.FILE_TABLE;
+
+    const suspensionError = await checkSuspension(userId, docClient, tableName);
+    if (suspensionError) return suspensionError;
+
     if (!event.body) {
       return {
         statusCode: 400,
@@ -30,7 +36,12 @@ exports.handler = async (event) => {
       };
     }
 
-    const { tags } = JSON.parse(event.body);
+    let tags;
+    try {
+      ({ tags } = JSON.parse(event.body));
+    } catch {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
+    }
 
     if (!Array.isArray(tags)) {
       return {
@@ -39,8 +50,6 @@ exports.handler = async (event) => {
         body: JSON.stringify({ error: 'Tags must be an array' }),
       };
     }
-
-    const tableName = process.env.FILE_TABLE;
 
     await docClient.send(
       new UpdateCommand({

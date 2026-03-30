@@ -57,6 +57,11 @@ exports.handler = async (event) => {
     const bucketName = process.env.UPLOAD_BUCKET;
     const key = file.key;
 
+    if (!key) {
+      console.error(`[PublicAccess] Missing S3 key for file: ${file.fileId}`);
+      return { statusCode: 500, headers, body: JSON.stringify({ error: 'File storage reference missing' }) };
+    }
+
     const command = new GetObjectCommand({
         Bucket: bucketName,
         Key: key,

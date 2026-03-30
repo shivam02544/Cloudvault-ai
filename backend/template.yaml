@@ -6,7 +6,7 @@ Globals:
   Function:
     Timeout: 10
     MemorySize: 256
-    Runtime: nodejs20.x
+    Runtime: nodejs22.x
     Architectures:
       - x86_64
     Environment:
@@ -145,6 +145,8 @@ Resources:
         Variables:
           ANALYZE_FUNCTION: !Ref AnalyzeImageFunction
       Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
         - DynamoDBWritePolicy:
             TableName: !Ref FileMetadataTable
         - LambdaInvokePolicy:
@@ -205,6 +207,8 @@ Resources:
       CodeUri: src/
       Handler: functions/deleteFile.handler
       Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
         - DynamoDBWritePolicy:
             TableName: !Ref FileMetadataTable
       Events:
@@ -316,6 +320,8 @@ Resources:
       CodeUri: src/
       Handler: functions/updateTags.handler
       Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
         - DynamoDBWritePolicy:
             TableName: !Ref FileMetadataTable
       Events:
@@ -360,6 +366,98 @@ Resources:
             Path: /admin/moderation/mark-safe
             Method: POST
 
+  # ─── Lambda: Admin List Users (Admin Module) ─────────────────────────────────
+  AdminListUsersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/adminListUsers.handler
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: !Ref CloudVaultUserPool
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:ListUsers
+              Resource: !GetAtt CloudVaultUserPool.Arn
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /admin/users
+            Method: GET
+
+  # ─── Lambda: Admin Suspend/Activate User (Admin Module) ──────────────────────
+  AdminSuspendUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/adminSuspendUser.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        SuspendEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /admin/users/{userId}/suspend
+            Method: POST
+        ActivateEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /admin/users/{userId}/activate
+            Method: POST
+
+  # ─── Lambda: Admin List Files (Admin Module) ─────────────────────────────────
+  AdminListFilesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/adminListFiles.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /admin/files
+            Method: GET
+
+  # ─── Lambda: Admin Delete File (Admin Module) ────────────────────────────────
+  AdminDeleteFileFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/adminDeleteFile.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+        - S3ReadPolicy:
+            BucketName: !Ref StorageBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:DeleteObject
+              Resource: !Sub "arn:aws:s3:::${StorageBucket}/*"
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /admin/files/{userId}/{fileId}
+            Method: DELETE
 
 
 Outputs:

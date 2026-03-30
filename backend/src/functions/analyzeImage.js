@@ -1,6 +1,7 @@
 const { RekognitionClient, DetectLabelsCommand, DetectModerationLabelsCommand } = require('@aws-sdk/client-rekognition');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, UpdateCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
+const { checkSuspension } = require('./shared/checkSuspension');
 
 const rekClient = new RekognitionClient({ region: process.env.AWS_REGION });
 const ddbClient = new DynamoDBClient({ region: process.env.AWS_REGION });
@@ -31,6 +32,11 @@ exports.handler = async (event) => {
       return isApi 
         ? { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing userId or fileId' }) }
         : { success: false, error: 'Missing userId or fileId' };
+    }
+
+    if (isApi) {
+      const suspensionError = await checkSuspension(userId, docClient, tableName);
+      if (suspensionError) return suspensionError;
     }
 
     // If metadata is missing (manual trigger), fetch it from DynamoDB

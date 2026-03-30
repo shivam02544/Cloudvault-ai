@@ -37,7 +37,12 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing body' }) };
     }
 
-    const { targetUserId, fileId } = JSON.parse(event.body);
+    let targetUserId, fileId;
+    try {
+      ({ targetUserId, fileId } = JSON.parse(event.body));
+    } catch {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
+    }
     if (!targetUserId || !fileId) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing targetUserId or fileId' }) };
     }

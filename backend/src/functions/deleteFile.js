@@ -1,5 +1,6 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { checkSuspension } = require('./shared/checkSuspension');
 
 const client = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -31,6 +32,9 @@ exports.handler = async (event) => {
       };
     }
     const tableName = process.env.FILE_TABLE;
+
+    const suspensionError = await checkSuspension(userId, docClient, tableName);
+    if (suspensionError) return suspensionError;
 
     // Soft delete: update status to 'deleted'
     await docClient.send(

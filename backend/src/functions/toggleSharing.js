@@ -1,6 +1,7 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { randomUUID } = require('crypto');
+const { checkSuspension } = require('./shared/checkSuspension');
 
 const client = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -17,13 +18,25 @@ exports.handler = async (event) => {
       return { statusCode: 401, headers, body: JSON.stringify({ error: 'Unauthorized' }) };
     }
 
-    const { fileId, isPublic } = JSON.parse(event.body);
+    const tableName = process.env.FILE_TABLE;
+
+    const suspensionError = await checkSuspension(userId, docClient, tableName);
+    if (suspensionError) return suspensionError;
+
+    if (!event.body) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing request body' }) };
+    }
+    let fileId, isPublic;
+    try {
+      ({ fileId, isPublic } = JSON.parse(event.body));
+    } catch {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
+    }
     if (!fileId) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'fileId is required' }) };
     }
 
     const sharingId = isPublic ? randomUUID().slice(0, 8) : null;
-    const tableName = process.env.FILE_TABLE;
 
     // Use specific expressions to avoid "null key" GSI validation errors
     // and correctly handle reserved words if they ever overlap (SAFE-SET)

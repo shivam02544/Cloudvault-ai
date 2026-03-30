@@ -2,6 +2,8 @@ const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, GetCommand } = require('@aws-sdk/lib-dynamodb');
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const { checkSuspension } = require('./shared/checkSuspension');
+const { adminGuard } = require('./shared/adminGuard');
 
 const ddbClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(ddbClient);
@@ -36,11 +38,24 @@ exports.handler = async (event) => {
     const tableName = process.env.FILE_TABLE;
     const bucketName = process.env.UPLOAD_BUCKET;
 
+    const suspensionError = await checkSuspension(userId, docClient, tableName);
+    if (suspensionError) return suspensionError;
+
+    // Admin preview: allow admin to fetch URL for another user's file
+    const targetUserId = event.queryStringParameters?.targetUserId;
+    let lookupUserId = userId;
+
+    if (targetUserId) {
+      const guardResponse = adminGuard(event);
+      if (guardResponse !== null) return guardResponse;
+      lookupUserId = targetUserId;
+    }
+
     // Fetch the S3 key from DynamoDB
     const result = await docClient.send(
       new GetCommand({
         TableName: tableName,
-        Key: { userId, fileId },
+        Key: { userId: lookupUserId, fileId },
       })
     );
 

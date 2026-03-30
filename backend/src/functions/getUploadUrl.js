@@ -3,6 +3,7 @@ const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, GetCommand } = require('@aws-sdk/lib-dynamodb');
 const { randomUUID } = require('crypto');
+const { checkSuspension } = require('./shared/checkSuspension');
 
 // The SDK automatically pulls region from AWS_REGION environment variable
 const s3 = new S3Client({ region: process.env.AWS_REGION });
@@ -18,7 +19,12 @@ exports.handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'Missing request body' }) };
     }
 
-    const { filename, contentType, size } = JSON.parse(event.body);
+    let filename, contentType, size;
+    try {
+      ({ filename, contentType, size } = JSON.parse(event.body));
+    } catch {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON body' }) };
+    }
 
     if (!filename || !contentType) {
       return { statusCode: 400, body: JSON.stringify({ error: 'filename and contentType are required' }) };
@@ -38,6 +44,9 @@ exports.handler = async (event) => {
 
     // Quota Enforcement (Phase 7 Wave 2)
     const tableName = process.env.FILE_TABLE;
+
+    const suspensionError = await checkSuspension(userId, docClient, tableName);
+    if (suspensionError) return suspensionError;
     const statsRes = await docClient.send(
       new GetCommand({
         TableName: tableName,
