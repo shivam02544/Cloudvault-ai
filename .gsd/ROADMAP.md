@@ -30,3 +30,21 @@
 **Status**: ✅ Completed
 **Objective**: Add robust error handling, toast notifications, one-click actions (copy URL, delete), and responsive micro-animations to reach the premium UI/UX standard.
 **Requirements**: REQ-07
+
+### Phase 5: Production Readiness & GitHub Deployment
+**Status**: ⬜ Not Started
+**Objective**: Prepare CloudVault AI for safe public sharing and production usage by properly managing environment variables, securing the repository, and ensuring clean project structure.
+**Depends on**: Phase 4
+
+**Tasks**:
+- [ ] Setup environment variables (.env, .env.example)
+- [ ] Replace hardcoded API URLs with env usage
+- [ ] Create and validate .gitignore
+- [ ] Ensure no sensitive data is committed
+- [ ] Clean project structure for GitHub
+- [ ] Verify frontend build with env variables
+- [ ] Prepare project for public repository
+- [ ] (run /plan 5 to detail out execution plans)
+
+**Verification**:
+- TBD
