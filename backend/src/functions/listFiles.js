@@ -11,7 +11,15 @@ exports.handler = async (event) => {
   };
 
   try {
-    const userId = 'usr_test_123'; // Hardcoded for MVP
+    const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
+    
+    if (!userId) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'Unauthorized' }),
+      };
+    }
     const tableName = process.env.FILE_TABLE;
 
     // Query by userId (HASH key) — NOT a Scan (DECISIONS.md Phase 3)
