@@ -103,3 +103,22 @@ Fields stored per file:
 - Keep `.gsd/`, `.agent/`, and `.gemini/` entirely local to maintain a clean public repo.
 - Ensure frontend explicitly uses `VITE_` prefix to avoid leaking backend secrets.
 - Verify repo history without deep rewrite unless a leak is found.
+
+## Phase 6 Decisions
+**Date:** 2026-03-30
+
+### Scope
+- Implement User Authentication using AWS Cognito (User Pools).
+- Add Cognito Authorizer to API Gateway to protect all backend endpoints.
+- Extract `userId` from the JWT token claims to replace the hardcoded `usr_test_123`.
+- Configure DynamoDB Data Isolation where each user only accesses their own data (`userId` as Partition Key).
+- Build Frontend Authentication flows (Signup, Login, Logout) and protect Dashboard routes.
+- Target live Vercel deployment only AFTER authentication is complete (in a subsequent phase).
+
+### Approach
+- Chose: Authentication First (Option A).
+- Reason: Deploying without authentication exposes all backend APIs publicly, leading to potential AWS Free Tier cost risks and security vulnerabilities.
+
+### Constraints
+- JWT token to be stored in `localStorage` for the MVP frontend authentication.
+- All secure API calls must pass `Authorization: Bearer <token>`.

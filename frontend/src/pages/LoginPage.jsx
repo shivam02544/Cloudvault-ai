@@ -41,9 +41,19 @@ export default function LoginPage() {
           <p className="text-sm text-slate-500 mb-6">Sign in to access your vault</p>
 
           {error && (
-            <div className="flex items-start gap-2 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm px-4 py-3 rounded-xl mb-5">
-              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-              <span>{error}</span>
+            <div className="flex flex-col gap-2 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm px-4 py-3 rounded-xl mb-5">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+              {error.includes('not confirmed') && (
+                <Link 
+                  to={`/signup?email=${encodeURIComponent(email)}`} 
+                  className="ml-6 text-blue-400 hover:text-blue-300 underline font-medium"
+                >
+                  Verify your account
+                </Link>
+              )}
             </div>
           )}
 

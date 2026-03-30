@@ -8,15 +8,9 @@ if (!API_URL) {
   console.warn("VITE_API_URL is missing. API calls will fail.");
 }
 
-// Phase 2 constraints (documented in DECISIONS.md)
-const MAX_SIZE = 2 * 1024 * 1024; // 2MB
-const ACCEPTED_TYPES = {
-  'image/jpeg': ['.jpg', '.jpeg'],
-  'image/png': ['.png'],
-  'image/webp': ['.webp'],
-  'application/pdf': ['.pdf'],
-};
-const ACCEPTED_LABELS = 'JPG, PNG, WEBP, PDF';
+// Phase 2 updated: Unlimited file types, 1GB limit
+const MAX_SIZE = 1024 * 1024 * 1024; // 1GB
+const ACCEPTED_LABELS = 'All file types supported';
 
 const UploadDropzone = ({ onUploadSuccess, token }) => {
   const [uploading, setUploading] = useState(false);
@@ -31,9 +25,7 @@ const UploadDropzone = ({ onUploadSuccess, token }) => {
       const rejection = rejectedFiles[0];
       const code = rejection.errors[0]?.code;
       if (code === 'file-too-large') {
-        setError('File exceeds the 2MB limit. Please choose a smaller file.');
-      } else if (code === 'file-invalid-type') {
-        setError(`Unsupported file type. Accepted: ${ACCEPTED_LABELS}`);
+        setError('File exceeds the 1024MB limit. Please choose a smaller file.');
       } else {
         setError('File rejected. Please check the file and try again.');
       }
@@ -111,11 +103,10 @@ const UploadDropzone = ({ onUploadSuccess, token }) => {
         setSuccess(false);
       }, 4000);
     }
-  }, [onUploadSuccess]);
+  }, [onUploadSuccess, token]);
 
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
-    accept: ACCEPTED_TYPES,
     maxSize: MAX_SIZE,
     multiple: false,
     disabled: uploading,
@@ -152,7 +143,7 @@ const UploadDropzone = ({ onUploadSuccess, token }) => {
         </div>
 
         {isDragReject ? (
-          <p className="text-lg font-medium text-red-400">File type not supported</p>
+          <p className="text-lg font-medium text-red-400">File rejected (too large?)</p>
         ) : isDragActive ? (
           <p className="text-xl font-semibold text-blue-400">Drop to upload</p>
         ) : (
@@ -168,7 +159,7 @@ const UploadDropzone = ({ onUploadSuccess, token }) => {
                 <FileImage className="h-3 w-3" /> {ACCEPTED_LABELS}
               </span>
               <span className="flex items-center gap-1.5 text-xs text-slate-500 bg-slate-800/70 px-3 py-1.5 rounded-lg border border-slate-700/50">
-                <FileText className="h-3 w-3" /> Max 2 MB
+                <FileText className="h-3 w-3" /> Max 1024 MB
               </span>
             </div>
           </div>

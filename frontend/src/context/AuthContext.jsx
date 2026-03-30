@@ -86,6 +86,19 @@ export function AuthProvider({ children }) {
       });
     });
 
+  const confirmSignup = (email, code) =>
+    new Promise((resolve, reject) => {
+      const userData = {
+        Username: email,
+        Pool: userPool,
+      };
+      const cognitoUser = new CognitoUser(userData);
+      cognitoUser.confirmRegistration(code, true, (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      });
+    });
+
   const logout = () => {
     const currentUser = userPool.getCurrentUser();
     if (currentUser) currentUser.signOut();
@@ -95,7 +108,7 @@ export function AuthProvider({ children }) {
 
   return (
     // Expose idToken as `token` — this is what the API Authorization header uses
-    <AuthContext.Provider value={{ user, token: idToken, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, token: idToken, loading, login, signup, confirmSignup, logout }}>
       {children}
     </AuthContext.Provider>
   );
