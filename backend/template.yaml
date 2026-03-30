@@ -15,10 +15,48 @@ Globals:
         FILE_TABLE: !Ref FileMetadataTable
 
 Resources:
-  # HTTP API with CORS
+  # ─── Cognito User Pool (Phase 6) ───────────────────────────────────────────
+  CloudVaultUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: CloudVaultUserPool
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+
+  # Cognito User Pool Client — no secret (required for browser JS clients)
+  CloudVaultUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CloudVaultUserPool
+      ClientName: CloudVaultWebClient
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+
+  # ─── HTTP API with CORS + Cognito JWT Authorizer ────────────────────────────
   CloudVaultApi:
     Type: AWS::Serverless::HttpApi
     Properties:
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            IdentitySource: "$request.header.Authorization"
+            JwtConfiguration:
+              issuer: !Sub "https://cognito-idp.${AWS::Region}.amazonaws.com/${CloudVaultUserPool}"
+              audience:
+                - !Ref CloudVaultUserPoolClient
       CorsConfiguration:
         AllowOrigins:
           - "*"
@@ -32,7 +70,7 @@ Resources:
           - Content-Type
           - Authorization
 
-  # Storage Bucket
+  # ─── Storage Bucket ─────────────────────────────────────────────────────────
   StorageBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -51,7 +89,7 @@ Resources:
               - ETag
             MaxAge: 3000
 
-  # DynamoDB Table
+  # ─── DynamoDB Table ─────────────────────────────────────────────────────────
   FileMetadataTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -68,7 +106,7 @@ Resources:
           KeyType: "RANGE"
       BillingMode: PAY_PER_REQUEST
 
-  # Lambda: Get Upload URL (Phase 1)
+  # ─── Lambda: Get Upload URL (Phase 1) ───────────────────────────────────────
   GetUploadUrlFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -85,7 +123,7 @@ Resources:
             Path: /files/upload-url
             Method: POST
 
-  # Lambda: Confirm Upload — write metadata to DynamoDB (Phase 3)
+  # ─── Lambda: Confirm Upload (Phase 3) ───────────────────────────────────────
   ConfirmUploadFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -102,7 +140,7 @@ Resources:
             Path: /files/confirm
             Method: POST
 
-  # Lambda: List Files — query DynamoDB by userId (Phase 3)
+  # ─── Lambda: List Files (Phase 3) ───────────────────────────────────────────
   ListFilesFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -119,7 +157,7 @@ Resources:
             Path: /files
             Method: GET
 
-  # Lambda: Delete File — soft delete in DynamoDB (Phase 4)
+  # ─── Lambda: Delete File (Phase 4) ──────────────────────────────────────────
   DeleteFileFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -136,7 +174,7 @@ Resources:
             Path: /files/{fileId}
             Method: DELETE
 
-  # Lambda: Get File URL — lazy presigned S3 url (Phase 4)
+  # ─── Lambda: Get File URL (Phase 4) ─────────────────────────────────────────
   GetFileUrlFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -159,3 +197,11 @@ Outputs:
   ApiEndpoint:
     Description: "API Gateway endpoint URL"
     Value: !Sub "https://${CloudVaultApi}.execute-api.${AWS::Region}.amazonaws.com/"
+
+  UserPoolId:
+    Description: "Cognito User Pool ID"
+    Value: !Ref CloudVaultUserPool
+
+  UserPoolClientId:
+    Description: "Cognito User Pool Client ID"
+    Value: !Ref CloudVaultUserPoolClient
