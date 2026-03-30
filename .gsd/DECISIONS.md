@@ -122,3 +122,46 @@ Fields stored per file:
 ### Constraints
 - JWT token to be stored in `localStorage` for the MVP frontend authentication.
 - All secure API calls must pass `Authorization: Bearer <token>`.
+ 
+## Phase 7 Decisions (Milestone v1.2)
+**Date:** 2026-03-30
+ 
+### Scope
+- **Utility First:** Prioritize core product features (Preview, Sharing, Quotas) over AI integrations (Rekognition/Textract) to maximize user value and minimize AWS costs.
+- **Enhanced Auth UX:** Implement a dedicated, high-quality 6-digit OTP component with auto-focus and paste support to resolve manual verification friction.
+- **In-App Previews:** Provide native modal viewers for Images, PDFs, Videos, and Audio to keep users within the application flow.
+- **Sharing System:** Implement a dedicated "Share" flow with public/private toggles and expiry metadata stored in DynamoDB.
+- **S3 Storage Quotas:** Implement a 5GB per-user storage limit enforced both on the backend (`getUploadUrl`) and displayed on the frontend.
+ 
+### Approach
+- Chose: **Utility Route (Option B)**.
+- Reason: AI features add significant cost and complexity while basic product "must-haves" like file previews and sharing are still missing. This prioritizes "Product-Market Fit" utility.
+- Enforcement: Storage quotas will be checked during the pre-signed URL generation phase to prevent large uploads from even starting if the quota is exceeded.
+ 
+### Constraints
+- No AI services (Rekognition, etc.) to be used in this phase.
+- Maintain glassmorphism design consistency across all new modals and inputs.
+
+## Phase 10 Decisions (AI Intelligence & Admin Moderation)
+**Date:** 2026-03-30
+
+### Scope
+- **AI Image Analysis**: Automated tagging and moderation using AWS Rekognition.
+- **Smart Search**: Filtering files by filename OR AI-generated tags.
+- **Tag UI System**: Badge displays on cards and full tag management (view/edit/delete) in Preview Modals.
+- **NSFW Content Safety**: Frontend-only blurring and "Sensitive Content" overlays for flagged files.
+- **Admin AI Moderation**: A dedicated global moderation console for admins to oversee and override AI flags.
+- **Hybrid Trigger Strategy**: Automatic analysis for files < 5MB; manual trigger for larger/skipped files.
+
+### Approach
+- **Chose: Async Post-Upload Analysis**.
+- **Reason**: Decoupling analysis from the critical upload path ensures high availability and performance. The `confirmUpload` function will invoke the `analyzeImage` Lambda asynchronously.
+- **Data Schema**: Extend DynamoDB `CloudVaultFiles` with `tags` (string list), `moderationLabels` (object list), `analyzed` (boolean), and `moderationStatus` (SAFE/UNSAFE).
+- **Search**: Update `listFiles.js` to perform DynamoDB filtering on tags and filename.
+
+### Constraints
+- **Cost Control**: 5MB hard limit for automatic AI processing. No re-analysis of already processed files.
+- **UI/UX**: Strictly maintain glassmorphism (`backdrop-blur-2xl`, `bg-slate-900/60`).
+- **Permissions**: `analyzeImage` Lambda needs `RekognitionReadPolicy` and `S3ReadPolicy`. Admin API remains protected by Cognito Groups.
+- **Safety**: Do NOT block uploads for NSFW content; only apply UI-level blurring to preserve user data but protect the interface.
+
