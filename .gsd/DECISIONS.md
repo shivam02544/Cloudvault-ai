@@ -85,3 +85,21 @@ Fields stored per file:
 - S3 bucket block public access remains intact.
 - Lazy URL generation only fetches when user previews or copies.
 - Toasts correctly bound to success, copy events, delete events, and errors.
+
+## Phase 5 Decisions
+**Date:** 2026-03-30
+
+### Scope
+- Prepare repository for GitHub without pushing automatically.
+- Create proper `.gitignore`.
+- Add `.env.example` files for frontend.
+- Ensure no sensitive data is committed.
+
+### Approach
+- Chose: Distinct Environment Management.
+- Reason: Keeps clean boundaries. Frontend uses `.env` with `VITE_API_URL` and `.env.example`. Backend uses SAM environment variables in `template.yaml`, avoiding `.env`.
+
+### Constraints
+- Keep `.gsd/`, `.agent/`, and `.gemini/` entirely local to maintain a clean public repo.
+- Ensure frontend explicitly uses `VITE_` prefix to avoid leaking backend secrets.
+- Verify repo history without deep rewrite unless a leak is found.

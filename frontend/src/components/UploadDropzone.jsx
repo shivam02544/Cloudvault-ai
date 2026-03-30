@@ -3,7 +3,10 @@ import { useDropzone } from 'react-dropzone';
 import { UploadCloud, CheckCircle, AlertCircle, X, FileImage, FileText } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL;
+if (!API_URL) {
+  console.warn("VITE_API_URL is missing. API calls will fail.");
+}
 
 // Phase 2 constraints (documented in DECISIONS.md)
 const MAX_SIZE = 2 * 1024 * 1024; // 2MB

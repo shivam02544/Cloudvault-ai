@@ -8,7 +8,10 @@ import {
 import { useToast } from './context/ToastContext';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL;
+if (!API_URL) {
+  console.warn("VITE_API_URL is missing. API calls will fail.");
+}
 
 // Render an icon based on MIME type
 const FileIcon = ({ type, className }) => {
