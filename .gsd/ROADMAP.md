@@ -1,7 +1,7 @@
 # ROADMAP.md
 
-> **Current Phase**: Done (Milestone v1.0 complete)
-> **Milestone**: v1.0
+> **Current Phase**: Done (Milestone v1.1 complete)
+> **Milestone**: v1.1
 
 ## Must-Haves (from SPEC)
 - [ ] Pre-signed URL upload pipeline
@@ -52,24 +52,24 @@
 ---
 
 ### Phase 6: Authentication & User System (Milestone v1.1)
-**Status**: ⬜ Not Started
+**Status**: ✅ Completed
 **Objective**: Secure the application by implementing AWS Cognito authentication, protecting backend endpoints, and isolating user data.
 **Depends on**: Phase 5
 
 **Tasks**:
-- [ ] Integrate AWS Cognito (User Pools) for authentication
-- [ ] Implement Signup, Login, and Logout functionality
-- [ ] Add Cognito Authorizer to API Gateway
-- [ ] Protect all backend endpoints
-- [ ] Extract userId from JWT token in Lambda functions
-- [ ] Replace hardcoded userId with authenticated user identity
-- [ ] Update DynamoDB access to be user-scoped
-- [ ] Add frontend auth pages (Login, Signup)
-- [ ] Store JWT token in localStorage
-- [ ] Attach Authorization header to API requests
-- [ ] Implement route protection for dashboard and upload pages
-- [ ] Ensure only authenticated users can access data
-- [ ] (run /plan 6 to create execution plans)
+- [x] Integrate AWS Cognito (User Pools) for authentication
+- [x] Implement Signup, Login, and Logout functionality
+- [x] Add Cognito Authorizer to API Gateway
+- [x] Protect all backend endpoints
+- [x] Extract userId from JWT token in Lambda functions
+- [x] Replace hardcoded userId with authenticated user identity
+- [x] Update DynamoDB access to be user-scoped
+- [x] Add frontend auth pages (Login, Signup)
+- [x] Store JWT token in localStorage
+- [x] Attach Authorization header to API requests
+- [x] Implement route protection for dashboard and upload pages
+- [x] Ensure only authenticated users can access data
+- [x] (run /plan 6 to create execution plans)
 
 **Verification**:
-- TBD
+- [VERIFICATION.md](file:///d:/my-projects/cloudvault-ai/.gsd/phases/6/VERIFICATION.md)
