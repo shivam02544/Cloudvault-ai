@@ -48,3 +48,28 @@
 
 **Verification**:
 - TBD
+
+---
+
+### Phase 6: Authentication & User System (Milestone v1.1)
+**Status**: ⬜ Not Started
+**Objective**: Secure the application by implementing AWS Cognito authentication, protecting backend endpoints, and isolating user data.
+**Depends on**: Phase 5
+
+**Tasks**:
+- [ ] Integrate AWS Cognito (User Pools) for authentication
+- [ ] Implement Signup, Login, and Logout functionality
+- [ ] Add Cognito Authorizer to API Gateway
+- [ ] Protect all backend endpoints
+- [ ] Extract userId from JWT token in Lambda functions
+- [ ] Replace hardcoded userId with authenticated user identity
+- [ ] Update DynamoDB access to be user-scoped
+- [ ] Add frontend auth pages (Login, Signup)
+- [ ] Store JWT token in localStorage
+- [ ] Attach Authorization header to API requests
+- [ ] Implement route protection for dashboard and upload pages
+- [ ] Ensure only authenticated users can access data
+- [ ] (run /plan 6 to create execution plans)
+
+**Verification**:
+- TBD
