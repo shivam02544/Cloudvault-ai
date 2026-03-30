@@ -19,8 +19,16 @@ exports.handler = async (event) => {
     }
 
     const fileId = randomUUID();
-    // For MVP, we are hardcoding a test user ID. In a real app, this comes from an authorizer (e.g., JWT).
-    const userId = 'usr_test_123';
+    const headers = { 'Content-Type': 'application/json' };
+    const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
+    
+    if (!userId) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'Unauthorized' }),
+      };
+    }
     
     // Construct the S3 key
     // Using a clear pattern: userId/fileId-filename
