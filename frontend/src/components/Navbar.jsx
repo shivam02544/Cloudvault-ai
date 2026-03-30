@@ -1,7 +1,8 @@
-import React from 'react';
 import { Cloud, Search, Bell, Settings, User } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
+  const { logout } = useAuth();
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,9 +37,14 @@ const Navbar = () => {
             <button className="text-slate-400 hover:text-white transition-colors">
               <Settings className="h-5 w-5" />
             </button>
-            <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center border border-slate-700 cursor-pointer">
+            <button
+              id="navbar-logout"
+              onClick={logout}
+              title="Sign out"
+              className="h-8 w-8 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center border border-slate-700 cursor-pointer hover:opacity-80 transition-opacity"
+            >
               <User className="h-5 w-5 text-white" />
-            </div>
+            </button>
           </div>
         </div>
       </div>
