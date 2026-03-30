@@ -29,6 +29,8 @@ Provision AWS Cognito User Pool and User Pool Client via SAM, then attach a nati
       Type: AWS::Cognito::UserPool
       Properties:
         UserPoolName: CloudVaultUserPool
+        UsernameAttributes:
+          - email
         AutoVerifiedAttributes:
           - email
         Policies:
@@ -52,8 +54,12 @@ Provision AWS Cognito User Pool and User Pool Client via SAM, then attach a nati
         PreventUserExistenceErrors: ENABLED
     ```
 
-    `GenerateSecret: false` is mandatory for JS browser clients — a client secret cannot be kept secure in a browser environment.
-    `ALLOW_USER_PASSWORD_AUTH` enables the SRP-free direct auth flow required by `amazon-cognito-identity-js`.
+    Key constraints:
+    - `UsernameAttributes: [email]` — users sign in with email, not a separate username.
+    - `AutoVerifiedAttributes: [email]` — Cognito sends verification email automatically after signup.
+    - `GenerateSecret: false` is mandatory for JS browser clients — a client secret cannot be kept secure in a browser environment.
+    - `ALLOW_USER_PASSWORD_AUTH` enables the direct auth flow required by `amazon-cognito-identity-js`.
+    - Do NOT add `ALLOW_USER_SRP_AUTH` — this is not needed for our simplified MVP flow.
   </action>
   <verify>powershell -Command "Select-String -Path backend/template.yaml -Pattern 'CloudVaultUserPool'"</verify>
   <done>The `CloudVaultUserPool` and `CloudVaultUserPoolClient` resources are found in `template.yaml`.</done>
@@ -63,7 +69,7 @@ Provision AWS Cognito User Pool and User Pool Client via SAM, then attach a nati
   <name>Add JWT Authorizer to CloudVaultApi and protect all Lambda routes</name>
   <files>backend/template.yaml</files>
   <action>
-    Modify the existing `CloudVaultApi` resource to add a `Auth` block with a Cognito JWT Authorizer. The existing `CorsConfiguration` must be preserved. Add `Authorization` to `AllowHeaders` if not already present (it already is). The updated `CloudVaultApi` should look like:
+    Modify the existing `CloudVaultApi` resource to add an `Auth` block with a Cognito JWT Authorizer. The existing `CorsConfiguration` must be preserved. The updated `CloudVaultApi` should look like:
 
     ```yaml
     CloudVaultApi:
@@ -92,7 +98,14 @@ Provision AWS Cognito User Pool and User Pool Client via SAM, then attach a nati
             - Authorization
     ```
 
-    The `DefaultAuthorizer: CognitoAuthorizer` automatically protects ALL routes attached to this API with no per-route configuration needed.
+    **Coverage confirmation — `DefaultAuthorizer` automatically protects ALL 5 routes:**
+    - `POST /files/upload-url` (GetUploadUrlFunction)
+    - `POST /files/confirm` (ConfirmUploadFunction)
+    - `GET /files` (ListFilesFunction)
+    - `DELETE /files/{fileId}` (DeleteFileFunction)
+    - `GET /files/{fileId}/url` (GetFileUrlFunction)
+
+    No endpoint is left unprotected. AWS API Gateway HTTP APIs automatically skip auth for `OPTIONS` preflight requests — CORS still works correctly.
   </action>
   <verify>powershell -Command "Select-String -Path backend/template.yaml -Pattern 'CognitoAuthorizer'"</verify>
   <done>`CognitoAuthorizer` is defined under the `CloudVaultApi` `Auth` block in `template.yaml`.</done>
@@ -121,6 +134,7 @@ Provision AWS Cognito User Pool and User Pool Client via SAM, then attach a nati
 </task>
 
 ## Success Criteria
-- [ ] `CloudVaultUserPool` and `CloudVaultUserPoolClient` resources exist in `template.yaml`.
-- [ ] `CloudVaultApi` has a `DefaultAuthorizer: CognitoAuthorizer` JWT Auth block.
+- [ ] `CloudVaultUserPool` resource includes `UsernameAttributes: [email]` and `AutoVerifiedAttributes: [email]`.
+- [ ] `CloudVaultUserPoolClient` has `GenerateSecret: false` and `ALLOW_USER_PASSWORD_AUTH`.
+- [ ] `CloudVaultApi` has a `DefaultAuthorizer: CognitoAuthorizer` JWT Auth block protecting all 5 routes.
 - [ ] `UserPoolId` and `UserPoolClientId` are exported as SAM Outputs.
