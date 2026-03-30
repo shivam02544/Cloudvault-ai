@@ -18,7 +18,7 @@ const ACCEPTED_TYPES = {
 };
 const ACCEPTED_LABELS = 'JPG, PNG, WEBP, PDF';
 
-const UploadDropzone = ({ onUploadSuccess }) => {
+const UploadDropzone = ({ onUploadSuccess, token }) => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
@@ -56,6 +56,8 @@ const UploadDropzone = ({ onUploadSuccess }) => {
         filename: file.name,
         contentType: file.type,
         size: file.size,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       const { uploadUrl, fileId, key } = res.data;
@@ -84,6 +86,8 @@ const UploadDropzone = ({ onUploadSuccess }) => {
           filename: file.name,
           contentType: file.type,
           size: file.size,
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
         });
       } catch (confirmErr) {
         console.error('Metadata confirm failed (non-fatal):', confirmErr);

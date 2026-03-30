@@ -6,6 +6,7 @@ import {
   LayoutGrid, List as ListIcon, Image, FileText, File, Loader2, Eye, Copy, Trash2
 } from 'lucide-react';
 import { useToast } from './context/ToastContext';
+import { useAuth } from './context/AuthContext';
 import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -36,10 +37,13 @@ function App() {
   const [activeCategory, setActiveCategory] = useState('All Files');
   const [loading, setLoading] = useState(true);
   const { addToast } = useToast();
+  const { token } = useAuth();
 
   const handleCopyUrl = async (fileId) => {
     try {
-      const res = await axios.get(`${API_URL}/files/${fileId}/url`);
+      const res = await axios.get(`${API_URL}/files/${fileId}/url`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       await navigator.clipboard.writeText(res.data.url);
       addToast('Link copied to clipboard', 'success');
     } catch (err) {
@@ -50,7 +54,9 @@ function App() {
 
   const handlePreview = async (fileId) => {
     try {
-      const res = await axios.get(`${API_URL}/files/${fileId}/url`);
+      const res = await axios.get(`${API_URL}/files/${fileId}/url`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       window.open(res.data.url, '_blank');
     } catch (err) {
       console.error(err);
@@ -60,7 +66,9 @@ function App() {
 
   const handleDelete = async (fileId) => {
     try {
-      await axios.delete(`${API_URL}/files/${fileId}`);
+      await axios.delete(`${API_URL}/files/${fileId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setFiles((prev) => prev.filter((f) => f.fileId !== fileId));
       addToast('File deleted', 'success');
     } catch (err) {
@@ -73,7 +81,9 @@ function App() {
   useEffect(() => {
     const fetchFiles = async () => {
       try {
-        const res = await fetch(`${API_URL}/files`);
+        const res = await fetch(`${API_URL}/files`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         setFiles(data.files || []);
@@ -156,7 +166,7 @@ function App() {
 
         {/* Upload Zone */}
         <div className="mb-12">
-          <UploadDropzone onUploadSuccess={handleUploadSuccess} />
+          <UploadDropzone onUploadSuccess={handleUploadSuccess} token={token} />
         </div>
 
         {/* Section Header */}
