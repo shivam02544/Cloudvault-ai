@@ -68,7 +68,10 @@ exports.handler = async (event) => {
         tags: item.tags || [],
         analyzed: item.analyzed || false,
         moderationStatus: item.moderationStatus || 'SAFE',
+        isPublic: item.isPublic || false,
+        sharingId: item.sharingId || null,
       }));
+
 
 
     // Sort by uploadedAt descending (newest first) — client-side for MVP

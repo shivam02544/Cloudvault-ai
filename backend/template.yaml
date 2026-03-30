@@ -251,6 +251,24 @@ Resources:
             Path: /files/stats
             Method: GET
 
+  # ─── Lambda: Admin Stats (Phase 9) ──────────────────────────────────────────
+  AdminStatsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/adminStats.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /admin/stats
+            Method: GET
+
+
   # ─── Lambda: Toggle Sharing (Phase 7) ───────────────────────────────────────
   ToggleSharingFunction:
     Type: AWS::Serverless::Function

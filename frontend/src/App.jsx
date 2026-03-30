@@ -124,13 +124,17 @@ function App() {
   const handleUploadSuccess = (fileData) => {
     const newFile = {
       fileId: fileData.fileId,
-      filename: fileData.name,
+      filename: fileData.name || 'Untitled',
       key: fileData.key,
       contentType: fileData.contentType,
       size: fileData.size || 0,
       uploadedAt: new Date().toISOString(),
       status: 'active',
+      tags: [],
+      analyzed: false,
+      moderationStatus: 'SAFE',
     };
+
     setFiles((prev) => [newFile, ...prev]);
     // Also update stats optimistically
     setStats((prev) => ({
@@ -147,8 +151,9 @@ function App() {
 
   const filteredFiles = files.filter((f) => {
     const searchLower = debouncedSearchTerm.toLowerCase();
-    const matchesName = f.filename.toLowerCase().includes(searchLower);
-    const matchesTags = (f.tags || []).some(tag => tag.toLowerCase().includes(searchLower));
+    const matchesName = (f.filename || "").toLowerCase().includes(searchLower);
+    const matchesTags = (f.tags || []).some(tag => (tag || "").toLowerCase().includes(searchLower));
+
     
     if (!matchesName && !matchesTags) return false;
 

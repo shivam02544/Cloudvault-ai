@@ -25,17 +25,24 @@ exports.handler = async (event) => {
     const sharingId = isPublic ? randomUUID().slice(0, 8) : null;
     const tableName = process.env.FILE_TABLE;
 
-    await docClient.send(
-      new UpdateCommand({
-        TableName: tableName,
-        Key: { userId, fileId },
-        UpdateExpression: 'SET isPublic = :p, sharingId = :s',
-        ExpressionAttributeValues: {
-          ':p': !!isPublic,
-          ':s': sharingId,
-        },
-      })
-    );
+    // Use specific expressions to avoid "null key" GSI validation errors
+    // and correctly handle reserved words if they ever overlap (SAFE-SET)
+    const updateParams = {
+      TableName: tableName,
+      Key: { userId, fileId },
+      UpdateExpression: isPublic 
+        ? 'SET isPublic = :p, sharingId = :s' 
+        : 'SET isPublic = :p REMOVE sharingId',
+      ExpressionAttributeValues: {
+        ':p': !!isPublic,
+      },
+    };
+
+    if (isPublic) {
+      updateParams.ExpressionAttributeValues[':s'] = sharingId;
+    }
+
+    await docClient.send(new UpdateCommand(updateParams));
 
     return {
       statusCode: 200,
@@ -48,15 +55,16 @@ exports.handler = async (event) => {
     };
   } catch (error) {
     const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
-    console.error(JSON.stringify({ 
-      event: 'TOGGLE_SHARING_ERROR', 
-      error: error.message, 
-      userId: userId || 'unknown' 
-    }));
+    console.error('TOGGLE_SHARING_ERROR:', {
+      message: error.message,
+      stack: error.stack,
+      userId: userId || 'unknown'
+    });
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Internal Server Error', message: 'Failed to update sharing status' }),
+      body: JSON.stringify({ error: 'Internal Server Error', message: error.message }),
     };
   }
 };
+
