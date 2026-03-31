@@ -21,15 +21,15 @@ exports.handler = async (event) => {
 
     // Flexible group detection
     const groupList = [];
-    
-    // Check all common keys for group/role lists
     ['cognito:groups', 'groups', 'custom:groups', 'roles'].forEach(key => {
       const val = claims[key];
       if (Array.isArray(val)) groupList.push(...val);
-      else if (typeof val === 'string') groupList.push(val);
+      else if (typeof val === 'string') {
+        if (val.startsWith('[')) { try { groupList.push(...JSON.parse(val)); } catch { groupList.push(val); } }
+        else groupList.push(val);
+      }
     });
-
-    const isAdmin = groupList.includes('admin') || claims['cognito:groups']?.includes('admin');
+    const isAdmin = groupList.includes('admin');
 
     if (!isAdmin) {
       console.warn(`[AdminStats] Unauthorized access attempt. User: ${claims.email || claims.sub}. Claims: ${JSON.stringify(claims)}`);
@@ -43,7 +43,6 @@ exports.handler = async (event) => {
     // 2. Fetch all __STATS__ records to aggregate global metrics
     const tableName = process.env.FILE_TABLE;
     
-    console.log('[AdminStats] Scanning for global statistics...');
     const res = await docClient.send(
       new ScanCommand({
         TableName: tableName,
@@ -58,9 +57,9 @@ exports.handler = async (event) => {
     );
 
     const statsRecords = res.Items || [];
-    console.log(`[AdminStats] Found ${statsRecords.length} user stats records.`);
     
     const totalStorageUsed = statsRecords.reduce((sum, item) => sum + (item.totalBytesUsed || 0), 0);
+    const totalFileCount = statsRecords.reduce((sum, item) => sum + (item.fileCount || 0), 0);
     const activeUserCount = statsRecords.length;
 
     return {
@@ -69,6 +68,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         totalStorageUsed,
         activeUserCount,
+        totalFileCount,
         metadata: {
           generatedAt: new Date().toISOString(),
           units: 'bytes'

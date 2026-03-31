@@ -6,6 +6,8 @@ import App from './App.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import SignupPage from './pages/SignupPage.jsx';
 import AdminPage from './pages/AdminPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
+import PublicFilePage from './pages/PublicFilePage.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
@@ -49,6 +51,8 @@ createRoot(document.getElementById('root')).render(
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/s/:sharingId" element={<PublicFilePage />} />
+              <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route
                 path="/"
                 element={

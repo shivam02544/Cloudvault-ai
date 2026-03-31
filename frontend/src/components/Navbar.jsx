@@ -49,9 +49,13 @@ const Navbar = () => {
               <span className="hidden sm:inline">Sign out</span>
             </button>
 
-            <div className="h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border border-white/10 shadow-lg">
+            <button
+              onClick={() => navigate('/profile')}
+              title="Profile"
+              className="h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border border-white/10 shadow-lg hover:opacity-80 transition-opacity"
+            >
               <User className="h-3.5 w-3.5 text-white" />
-            </div>
+            </button>
           </div>
         </div>
       </div>

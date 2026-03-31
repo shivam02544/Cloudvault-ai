@@ -211,6 +211,13 @@ Resources:
             TableName: !Ref FileMetadataTable
         - DynamoDBWritePolicy:
             TableName: !Ref FileMetadataTable
+        - S3ReadPolicy:
+            BucketName: !Ref StorageBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:DeleteObject
+              Resource: !Sub "arn:aws:s3:::${StorageBucket}/*"
       Events:
         ApiEvent:
           Type: HttpApi
@@ -458,6 +465,136 @@ Resources:
             ApiId: !Ref CloudVaultApi
             Path: /admin/files/{userId}/{fileId}
             Method: DELETE
+
+  # ─── Lambda: Admin Notify User ───────────────────────────────────────────────
+  AdminNotifyUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/adminNotifyUser.handler
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: !Ref CloudVaultUserPool
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminGetUser
+              Resource: !GetAtt CloudVaultUserPool.Arn
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /admin/users/{userId}/notify
+            Method: POST
+
+  # ─── Lambda: Admin Set User Limits ───────────────────────────────────────────
+  AdminSetUserLimitsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/adminSetUserLimits.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /admin/users/{userId}/limits
+            Method: POST
+
+  # ─── Lambda: Get Notifications (user) ────────────────────────────────────────
+  GetNotificationsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/getNotifications.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /notifications
+            Method: GET
+
+  # ─── Lambda: Register User (post email-verify) ───────────────────────────────
+  RegisterUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/registerUser.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /auth/register
+            Method: POST
+
+  # ─── Lambda: Get Account Status ──────────────────────────────────────────────
+  GetAccountStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/getAccountStatus.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /auth/status
+            Method: GET
+
+  # ─── Lambda: Admin Approve/Deny User ─────────────────────────────────────────
+  AdminApproveUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/adminApproveUser.handler
+      Environment:
+        Variables:
+          COGNITO_USER_POOL_ID: !Ref CloudVaultUserPool
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminGetUser
+              Resource: !GetAtt CloudVaultUserPool.Arn
+      Events:
+        ApproveEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /admin/users/{userId}/approve
+            Method: POST
+        DenyEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /admin/users/{userId}/deny
+            Method: POST
 
 
 Outputs:

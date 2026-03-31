@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Cloud, UserPlus, Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { Cloud, UserPlus, Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Clock, XCircle } from 'lucide-react';
 import OTPInput from '../components/OTPInput';
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function SignupPage() {
-  const { signup, confirmSignup } = useAuth();
+  const { signup, confirmSignup, login, token } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState(searchParams.get('email') || '');
@@ -15,20 +18,47 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isVerifying, setIsVerifying] = useState(!!searchParams.get('email'));
-  const [success, setSuccess] = useState(false);
+  // 'form' | 'verifying' | 'pending' | 'denied' | 'approved'
+  const [stage, setStage] = useState(searchParams.get('email') ? 'verifying' : 'form');
+  const [tempToken, setTempToken] = useState(null); // token after login, before status check
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError(''); setLoading(true);
-    try { await signup(email, password); setIsVerifying(true); }
-    catch (err) { setError(err.message || 'Signup failed. Please try again.'); }
+    try {
+      await signup(email, password);
+      setStage('verifying');
+    } catch (err) { setError(err.message || 'Signup failed. Please try again.'); }
     finally { setLoading(false); }
   };
 
   const handleVerify = async (e) => {
     e.preventDefault(); setError(''); setLoading(true);
-    try { await confirmSignup(email, code); setSuccess(true); setTimeout(() => navigate('/login'), 3000); }
-    catch (err) { setError(err.message || 'Verification failed. Please check your code.'); }
-    finally { setLoading(false); }
+    try {
+      // 1. Confirm OTP with Cognito
+      await confirmSignup(email, code);
+
+      // 2. Log in to get a token so we can call /auth/register
+      const session = await login(email, password);
+      const idToken = session.getIdToken().getJwtToken();
+      setTempToken(idToken);
+
+      // 3. Register user in DynamoDB (creates __STATS__ with status: pending)
+      const res = await axios.post(`${API_URL}/auth/register`, {}, {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+
+      const status = res.data.status;
+      if (status === 'active') {
+        // Admin pre-approved or already registered — go straight to dashboard
+        navigate('/');
+      } else if (status === 'denied') {
+        setStage('denied');
+      } else {
+        setStage('pending');
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Verification failed. Please check your code.');
+    } finally { setLoading(false); }
   };
 
   return (
@@ -39,6 +69,7 @@ export default function SignupPage() {
       </div>
 
       <div className="relative w-full max-w-sm">
+        {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
           <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/25">
             <Cloud className="h-5 w-5 text-white" />
@@ -49,18 +80,48 @@ export default function SignupPage() {
         </div>
 
         <div className="glass p-7 rounded-2xl shadow-2xl shadow-black/30">
-          {success ? (
-            <div className="text-center py-4">
-              <div className="h-14 w-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400 mx-auto mb-4 border border-emerald-500/20">
-                <CheckCircle className="h-7 w-7" />
+
+          {/* ── Pending approval ── */}
+          {stage === 'pending' && (
+            <div className="text-center py-2">
+              <div className="h-16 w-16 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-400 mx-auto mb-5 border border-amber-500/20">
+                <Clock className="h-8 w-8" />
               </div>
-              <h2 className="text-base font-bold text-white mb-1">Account Verified!</h2>
-              <p className="text-sm text-slate-500 mb-5">Redirecting you to login…</p>
-              <Link to="/login" className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors w-full">
-                Go to Login
+              <h2 className="text-base font-bold text-white mb-2">Account Pending Approval</h2>
+              <p className="text-sm text-slate-400 leading-relaxed mb-5">
+                Your email has been verified. Your account is now awaiting admin approval.
+                You'll receive a notification once it's reviewed.
+              </p>
+              <div className="bg-blue-500/8 border border-blue-500/15 rounded-xl p-4 mb-5 text-left">
+                <p className="text-xs text-blue-400/80 leading-relaxed">
+                  <span className="font-semibold text-blue-400">What happens next?</span><br />
+                  An admin will review your registration. If approved, you'll be able to log in and access your vault. This usually takes less than 24 hours.
+                </p>
+              </div>
+              <Link to="/login" className="block w-full text-center py-2.5 rounded-xl text-sm font-semibold bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all">
+                Back to Login
               </Link>
             </div>
-          ) : isVerifying ? (
+          )}
+
+          {/* ── Denied ── */}
+          {stage === 'denied' && (
+            <div className="text-center py-2">
+              <div className="h-16 w-16 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-400 mx-auto mb-5 border border-rose-500/20">
+                <XCircle className="h-8 w-8" />
+              </div>
+              <h2 className="text-base font-bold text-white mb-2">Account Not Approved</h2>
+              <p className="text-sm text-slate-400 leading-relaxed mb-5">
+                Your account registration was not approved. If you believe this is a mistake, please contact support.
+              </p>
+              <Link to="/login" className="block w-full text-center py-2.5 rounded-xl text-sm font-semibold bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-all">
+                Back to Login
+              </Link>
+            </div>
+          )}
+
+          {/* ── OTP verification ── */}
+          {stage === 'verifying' && (
             <>
               <h1 className="text-lg font-bold text-white mb-0.5">Verify Email</h1>
               <p className="text-sm text-slate-500 mb-6">Enter the 6-digit code sent to <span className="text-slate-300">{email}</span></p>
@@ -82,11 +143,14 @@ export default function SignupPage() {
                   {loading ? 'Verifying…' : 'Verify Account'}
                 </button>
               </form>
-              <button onClick={() => setIsVerifying(false)} className="w-full text-center text-xs text-slate-600 mt-5 hover:text-slate-400 transition-colors">
+              <button onClick={() => setStage('form')} className="w-full text-center text-xs text-slate-600 mt-5 hover:text-slate-400 transition-colors">
                 ← Back to Signup
               </button>
             </>
-          ) : (
+          )}
+
+          {/* ── Signup form ── */}
+          {stage === 'form' && (
             <>
               <h1 className="text-lg font-bold text-white mb-0.5">Create account</h1>
               <p className="text-sm text-slate-500 mb-6">Start storing files securely</p>
@@ -131,6 +195,7 @@ export default function SignupPage() {
               </p>
             </>
           )}
+
         </div>
       </div>
     </div>
