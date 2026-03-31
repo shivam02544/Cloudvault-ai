@@ -60,6 +60,27 @@ body::before {
   -webkit-backdrop-filter: blur(12px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.2);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.glass-premium {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+}
+
+.text-glow-blue {
+  text-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.text-glow-emerald {
+  text-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+}
+
+.text-glow-rose {
+  text-shadow: 0 0 15px rgba(244, 63, 94, 0.5);
 }
 
 /* Advanced Glows */
@@ -99,5 +120,120 @@ body::before {
 .interactive-hover:hover {
   transform: translateY(-2px);
   filter: brightness(1.2);
+}
+
+/* Data-Dense Layout Utilities */
+.liquid-expansion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+.animate-scan {
+  animation: scan-line 2s infinite linear;
+}
+
+.border-glow-hover {
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.border-glow-hover:hover {
+  box-shadow: 0 0 20px -5px rgba(59, 130, 246, 0.3);
+}
+
+/* Auth Portal Premium Styles */
+.glass-auth {
+  background: rgba(10, 15, 25, 0.7);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.input-auth {
+  @apply bg-slate-900/50 border border-white/[0.05] rounded-2xl px-5 py-4 text-sm text-slate-200 placeholder-slate-600 transition-all duration-300;
+}
+
+.input-auth:focus {
+  @apply border-blue-500/40 bg-slate-900/80 ring-4 ring-blue-500/5 shadow-[0_0_20px_rgba(59,130,246,0.1)];
+}
+
+.auth-header-glitch {
+  @apply font-black text-white italic uppercase tracking-tighter;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+.auth-nav-link {
+  @apply text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 hover:text-white transition-colors;
+}
+
+/* Landing Page Grid Pattern */
+.bg-grid-mesh {
+  opacity: 0.2;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M54.627 0l.83.828-1.415 1.415L53.213 1.414 54.627 0zM5.373 0L3.958 1.414 2.543 2.828 1.128 4.243 0 5.37l1.414 1.415L6.787 1.414 5.373 0z' fill='%233b82f6' fill-opacity='.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+  mask-image: radial-gradient(ellipse at center, black, transparent);
+  -webkit-mask-image: radial-gradient(ellipse at center, black, transparent);
+}
+
+/* Landing Page Hero Glitch */
+.landing-hero-glitch {
+  position: relative;
+  display: inline-block;
+}
+
+.landing-hero-glitch::before,
+.landing-hero-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-primary);
+}
+
+.landing-hero-glitch::before {
+  left: 2px;
+  text-shadow: -2px 0 #ff00c1;
+  clip: rect(44px, 450px, 56px, 0);
+  animation: glitch-anim 5s infinite linear alternate-reverse;
+}
+
+.landing-hero-glitch::after {
+  left: -2px;
+  text-shadow: -2px 0 #00fff9, 2px 2px #ff00c1;
+  animation: glitch-anim2 1s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-anim {
+  0% { clip: rect(31px, 9999px, 94px, 0); }
+  20% { clip: rect(62px, 9999px, 42px, 0); }
+  40% { clip: rect(16px, 9999px, 78px, 0); }
+  60% { clip: rect(58px, 9999px, 49px, 0); }
+  80% { clip: rect(73px, 9999px, 86px, 0); }
+  100% { clip: rect(52px, 9999px, 24px, 0); }
+}
+
+@keyframes glitch-anim2 {
+  0% { clip: rect(12px, 9999px, 90px, 0); }
+  25% { clip: rect(25px, 9999px, 140px, 0); }
+  50% { clip: rect(45px, 9999px, 115px, 0); }
+  75% { clip: rect(95px, 9999px, 34px, 0); }
+  100% { clip: rect(31px, 9999px, 15px, 0); }
+}
+
+/* Background Aurora Section */
+.bg-aurora {
+  background: radial-gradient(circle at 50% -20%, #3b82f622, transparent),
+              radial-gradient(circle at -20% 50%, #8b5cf611, transparent),
+              radial-gradient(circle at 120% 120%, #06b6d411, transparent);
+  background-attachment: fixed;
 }
 

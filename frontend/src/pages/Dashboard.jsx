@@ -1,0 +1,270 @@
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { 
+  LayoutGrid, List as ListIcon, 
+  ShieldCheck, FolderOpen, RefreshCw, Zap, Activity, HardDrive
+} from 'lucide-react';
+
+import Navbar from '../components/Navbar';
+import UploadDropzone from '../components/UploadDropzone';
+import PreviewModal from '../components/PreviewModal';
+import ShareModal from '../components/ShareModal';
+import VaultStats from '../components/VaultStats';
+import FileFilter from '../components/FileFilter';
+import FileContainer from '../components/FileContainer';
+import VaultSettings from '../components/VaultSettings';
+
+import { useAuth } from '../context/AuthContext';
+import { useVault } from '../hooks/useVault';
+import { useState, useEffect } from 'react';
+
+const Dashboard = () => {
+  const { token, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const vault = useVault();
+  const [showSettings, setShowSettings] = useState(false);
+
+  const {
+    files, stats, loading, loadError,
+    viewMode, setViewMode,
+    activeCategory, setActiveCategory,
+    searchTerm, setSearchTerm,
+    previewData, setPreviewData,
+    shareFile, setShareFile,
+    usagePercent, actions
+  } = vault;
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-[#05080f] selection:bg-blue-500/30 relative overflow-hidden" id="dashboard">
+      
+      {/* Neural Background Layer */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+         <div className="absolute inset-0 bg-aurora opacity-50" />
+         <div className="absolute inset-0 bg-grid-mesh opacity-20" />
+         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/5 blur-[150px] rounded-full animate-pulse-slow" />
+         <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-indigo-600/5 blur-[150px] rounded-full animate-pulse-slow" />
+      </div>
+
+      <Navbar />
+
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-16">
+        
+        {/* ── Page Header ── */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+          <motion.div 
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="space-y-6"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-[2rem] bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-2xl shadow-blue-500/20">
+                <HardDrive size={28} />
+              </div>
+              <div>
+                <h1 className="text-3xl sm:text-5xl font-black tracking-tighter text-white flex items-center gap-4 italic uppercase">
+                  My Vault
+                  {isAdmin && (
+                    <motion.button 
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => navigate('/admin')}
+                      className="flex items-center gap-2 text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-4 py-1.5 rounded-full font-black uppercase tracking-[0.2em] backdrop-blur-md hover:bg-blue-500/20 transition-all cursor-pointer shadow-lg shadow-blue-500/10"
+                    >
+                      <ShieldCheck size={12} /> Controller
+                    </motion.button>
+                  )}
+                </h1>
+                <p className="text-[11px] font-black text-blue-400 uppercase tracking-[0.4em] mt-2 ml-1">Secure Digital Environment</p>
+              </div>
+            </div>
+            <VaultStats usagePercent={usagePercent} />
+          </motion.div>
+
+          {/* Controls */}
+          <motion.div 
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+            className="flex items-center gap-4 self-end"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowSettings(true)}
+              className="px-6 py-4 glass-premium rounded-2xl border border-white/[0.08] text-slate-400 hover:text-white transition-all flex items-center justify-center relative group overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-blue-500/5 group-hover:bg-blue-500/10 transition-all" />
+              <div className="relative z-10 flex items-center gap-3">
+                <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-1000" />
+                <span className="text-[10px] font-black uppercase tracking-[0.25em]">Initialize Reset</span>
+              </div>
+            </motion.button>
+
+            <div className="flex items-center gap-2 p-2 glass-premium rounded-[1.5rem] border border-white/[0.08] shadow-2xl">
+              {[
+                { id: 'grid', icon: LayoutGrid, label: 'Grid' },
+                { id: 'list', icon: ListIcon, label: 'List' }
+              ].map(({ id, icon: Icon, label }) => (
+                <button
+                  key={id}
+                  onClick={() => setViewMode(id)}
+                  className={`flex items-center gap-3 px-5 py-3 rounded-2xl transition-all duration-500 relative ${
+                    viewMode === id ? 'text-white' : 'text-slate-500 hover:text-slate-300'
+                  }`}
+                >
+                  {viewMode === id && (
+                    <motion.div 
+                      layoutId="viewModeIndicator"
+                      className="absolute inset-0 bg-blue-600/20 border border-blue-500/30 rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.15)]"
+                      transition={{ type: "spring", bounce: 0.25, duration: 0.6 }}
+                    />
+                  )}
+                  <Icon size={14} className="relative z-10" />
+                  <span className="text-[10px] font-black uppercase tracking-widest relative z-10 hidden sm:inline">{label}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* ── Main Operations ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+          
+          {/* Left Column: Upload & Filters */}
+          <div className="lg:col-span-4 space-y-10 sticky top-10">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+            >
+              <UploadDropzone onUploadSuccess={actions.handleUploadSuccess} token={token} />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="glass-premium p-10 rounded-[3rem] border border-white/[0.05] relative overflow-hidden"
+            >
+               <div className="absolute top-0 right-0 p-8 opacity-[0.03] text-blue-500 pointer-events-none">
+                <Zap size={100} />
+              </div>
+              
+              <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-3">
+                <FolderOpen size={14} className="text-blue-500" /> Navigation Core
+              </h3>
+              <FileFilter 
+                activeCategory={activeCategory} 
+                setActiveCategory={setActiveCategory}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+              />
+            </motion.div>
+          </div>
+
+          {/* Right Column: File Display */}
+          <div className="lg:col-span-8">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="flex items-center justify-between mb-8 px-6 py-4 glass-premium rounded-[2rem] border border-white/[0.05] relative overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/[0.02] to-transparent pointer-events-none" />
+              <div className="absolute bottom-0 left-0 h-px w-full bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
+              
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="h-8 w-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shadow-sm shadow-blue-500/10 animate-pulse">
+                  <Activity size={16} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-black text-white italic uppercase tracking-[0.2em] leading-none mb-1">
+                    Asset Intelligence
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    <div className="h-1 w-1 bg-emerald-500 rounded-full animate-ping" />
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest opacity-60">Neural Sync Active</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 relative z-10">
+                 <div className="bg-slate-900/50 border border-white/[0.05] rounded-xl px-4 py-2 flex flex-col items-center min-w-[80px]">
+                    <span className="text-[12px] font-black font-mono text-blue-400 tracking-tighter leading-none">{(files?.length || 0).toString().padStart(3, '0')}</span>
+                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mt-1">Unit Index</span>
+                 </div>
+                 <div className="hidden sm:flex bg-slate-900/50 border border-white/[0.05] rounded-xl px-4 py-2 flex flex-col items-center min-w-[80px]">
+                    <span className="text-[12px] font-black font-mono text-emerald-400 tracking-tighter leading-none">1.2ms</span>
+                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mt-1">Latency</span>
+                 </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+               variants={containerVariants}
+               initial="hidden"
+               animate="show"
+            >
+              <FileContainer 
+                files={files}
+                viewMode={viewMode}
+                loading={loading}
+                loadError={loadError}
+                searchTerm={searchTerm}
+                actions={{
+                  ...actions,
+                  onShare: setShareFile,
+                  resetSearch: () => setSearchTerm('')
+                }}
+              />
+            </motion.div>
+          </div>
+        </div>
+      </main>
+
+      {/* ── Modals Layer ── */}
+      <AnimatePresence>
+        {previewData && (
+          <PreviewModal 
+            file={previewData.file} 
+            url={previewData.url} 
+            token={token} 
+            onUpdate={actions.handleUpdateFile} 
+            onClose={() => setPreviewData(null)} 
+          />
+        )}
+        {shareFile && (
+          <ShareModal 
+            file={shareFile} 
+            onClose={() => setShareFile(null)} 
+            onUpdate={actions.handleUpdateFile} 
+            token={token} 
+          />
+        )}
+        {showSettings && (
+          <VaultSettings 
+            onClose={() => setShowSettings(false)} 
+            onReset={actions.handleResetVault} 
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Background Decorative Element */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-blue-600/5 blur-[150px] animate-pulse-slow" />
+        <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] bg-indigo-600/5 blur-[150px] animate-pulse-slow" />
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;

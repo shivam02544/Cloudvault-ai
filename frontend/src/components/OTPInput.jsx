@@ -1,10 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 
 export default function OTPInput({ value, onChange, disabled }) {
   const [otp, setOtp] = useState(new Array(6).fill(''));
   const inputs = useRef([]);
 
-  // Sync internal state if value prop changes externally (e.g. reset)
   useEffect(() => {
     if (!value) {
       setOtp(new Array(6).fill(''));
@@ -19,43 +19,21 @@ export default function OTPInput({ value, onChange, disabled }) {
     setOtp(newOtp);
     onChange(newOtp.join(''));
 
-    // Move to next input if value is entered
     if (element.value !== '' && index < 5) {
       inputs.current[index + 1].focus();
     }
   };
 
   const handleKeyDown = (e, index) => {
-    // Move to previous input on backspace if current is empty
     if (e.key === 'Backspace' && otp[index] === '' && index > 0) {
       inputs.current[index - 1].focus();
     }
   };
 
-  const handlePaste = (e) => {
-    e.preventDefault();
-    const pasteData = e.clipboardData.getData('text').slice(0, 6).split('');
-    if (pasteData.every(char => !isNaN(char))) {
-      const newOtp = [...otp];
-      pasteData.forEach((char, index) => {
-        newOtp[index] = char;
-        if (inputs.current[index]) {
-          inputs.current[index].value = char;
-        }
-      });
-      setOtp(newOtp);
-      onChange(newOtp.join(''));
-      
-      // Focus the last filled input or the next empty one
-      const nextIndex = Math.min(pasteData.length, 5);
-      inputs.current[nextIndex].focus();
-    }
-  };
-
   return (
-    <div className="flex gap-2 justify-between" onPaste={handlePaste}>
+    <div className="flex gap-2.5 sm:gap-4 justify-center py-4">
       {otp.map((data, index) => (
-        <input
+        <motion.input
           key={index}
           type="text"
           maxLength={1}
@@ -64,7 +42,10 @@ export default function OTPInput({ value, onChange, disabled }) {
           disabled={disabled}
           onChange={(e) => handleChange(e.target, index)}
           onKeyDown={(e) => handleKeyDown(e, index)}
-          className="w-10 h-12 text-center text-xl font-bold bg-slate-800/60 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: index * 0.05 }}
+          className="w-10 h-14 sm:w-12 sm:h-16 text-center text-xl font-black bg-slate-900 border border-white/[0.05] rounded-[1rem] text-white focus:outline-none focus:border-blue-500/50 focus:bg-slate-800 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner disabled:opacity-30"
           autoFocus={index === 0}
         />
       ))}

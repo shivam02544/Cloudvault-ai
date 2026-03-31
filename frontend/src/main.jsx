@@ -50,17 +50,10 @@ createRoot(document.getElementById('root')).render(
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
-              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
               <Route path="/s/:sharingId" element={<PublicFilePage />} />
               <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <App />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/" element={<App />} />
             </Routes>
             <Toast />
           </ToastProvider>
