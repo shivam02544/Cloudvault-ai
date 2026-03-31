@@ -34,19 +34,19 @@ export default function PreviewModal({ file, url, token, onUpdate, onClose }) {
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
-    addToast('Starting AI analysis…', 'info');
+    addToast('Scanning File…', 'info');
     try {
       const res = await axios.post(
         `${API_URL}/files/${file.fileId}/analyze`, {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.data.success) {
-        addToast('AI analysis complete', 'success');
+        addToast('Scan Complete', 'success');
         onUpdate({ ...file, analyzed: true, tags: res.data.tags || file.tags });
       }
     } catch (err) {
       const reason = err.response?.data?.reason;
-      addToast(reason === 'file_too_large' ? 'File too large for AI analysis (>5MB)' : 'AI analysis failed', 'error');
+      addToast(reason === 'file_too_large' ? 'File too large for analysis (>5MB)' : 'Scan failed', 'error');
     } finally { setIsAnalyzing(false); }
   };
 
@@ -54,36 +54,36 @@ export default function PreviewModal({ file, url, token, onUpdate, onClose }) {
 
   const renderViewer = () => {
     if (type?.startsWith('image/')) return (
-      <img src={url} alt={file.filename} className="max-w-full max-h-full object-contain rounded-xl" />
+      <img src={url} alt={file.filename} className="max-w-full max-h-full object-contain rounded-xl shadow-2xl border border-white/5" />
     );
     if (type?.startsWith('video/')) return (
-      <video controls autoPlay className="max-w-full max-h-full rounded-xl w-full">
+      <video controls autoPlay className="max-w-full max-h-full rounded-xl w-full shadow-2xl border border-white/10">
         <source src={url} type={type} />
       </video>
     );
     if (type?.startsWith('audio/')) return (
-      <div className="flex flex-col items-center gap-5 p-8 w-full max-w-sm">
-        <div className="h-16 w-16 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-400 border border-purple-500/15">
+      <div className="flex flex-col items-center gap-6 p-6 sm:p-10 w-full max-w-sm glass-premium rounded-3xl border border-white/5">
+        <div className="h-16 w-16 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-400 border border-purple-500/20 shadow-lg">
           <Music className="h-8 w-8" />
         </div>
-        <p className="text-sm font-medium text-slate-300 truncate w-full text-center">{file.filename}</p>
-        <audio controls autoPlay className="w-full"><source src={url} type={type} /></audio>
+        <p className="text-[13px] font-bold text-slate-300 truncate w-full text-center px-4 italic">{file.filename}</p>
+        <audio controls autoPlay className="w-full h-10 invert brightness-200"><source src={url} type={type} /></audio>
       </div>
     );
     if (type === 'application/pdf') return (
-      <iframe src={`${url}#toolbar=0`} className="w-full h-full min-h-[50vh] rounded-xl border border-white/[0.06] bg-white" title="PDF" />
+      <iframe src={`${url}#toolbar=0`} className="w-full h-full min-h-[50vh] sm:min-h-[60vh] rounded-xl border border-white/[0.06] bg-white/5" title="PDF" />
     );
     return (
-      <div className="flex flex-col items-center text-center gap-4 p-8 max-w-xs">
-        <div className="h-16 w-16 bg-slate-800/60 rounded-2xl flex items-center justify-center text-slate-500">
+      <div className="flex flex-col items-center text-center gap-6 p-8 max-w-xs glass-premium rounded-[2rem] border border-white/5">
+        <div className="h-16 w-16 bg-slate-900 rounded-2xl flex items-center justify-center text-slate-600 border border-white/5 shadow-inner">
           <FileQuestion className="h-8 w-8" />
         </div>
         <div>
-          <p className="font-semibold text-slate-200">No preview available</p>
-          <p className="text-slate-500 text-sm mt-1">{type || 'Unknown type'}</p>
+          <p className="font-black text-[12px] uppercase tracking-widest text-slate-200 italic">No Preview Available</p>
+          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-2">{type || 'Unknown type'}</p>
         </div>
         <a href={url} download={file.filename}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors w-full justify-center">
+          className="flex items-center gap-3 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black uppercase tracking-[0.2em] px-8 py-4 rounded-xl transition-all w-full justify-center shadow-lg active:scale-[0.98]">
           <Download className="h-4 w-4" /> Download
         </a>
       </div>
@@ -91,73 +91,69 @@ export default function PreviewModal({ file, url, token, onUpdate, onClose }) {
   };
 
   return (
-    /* Full-screen overlay — scrollable on mobile */
-    <div className="fixed inset-0 z-[100] overflow-y-auto">
-      {/* Backdrop — clicking closes */}
-      <div className="fixed inset-0 bg-black/75 backdrop-blur-md" onClick={onClose} />
+    <div className="fixed inset-0 z-[300] overflow-y-auto">
+      <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-2xl animate-in fade-in duration-300" onClick={onClose} />
 
-      {/* Centering wrapper */}
-      <div className="relative min-h-full flex items-start sm:items-center justify-center p-4 sm:p-6">
+      <div className="relative min-h-full flex items-center justify-center p-4">
         <div
-          className="relative w-full max-w-3xl bg-[#0c1220] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+          className="relative w-full max-w-4xl bg-[#0c1220] border border-white/[0.08] rounded-[2rem] sm:rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 fade-in duration-500"
           onClick={e => e.stopPropagation()}
         >
-          {/* ── Sticky header with close button ── */}
-          <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-[#0c1220]/95 backdrop-blur-sm border-b border-white/[0.07]">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="h-8 w-8 bg-blue-500/10 rounded-lg flex items-center justify-center text-blue-400 border border-blue-500/15 shrink-0">
-                <FileText className="h-4 w-4" />
+          {/* Header */}
+          <div className="sticky top-0 z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-5 bg-[#0c1220]/95 backdrop-blur-md border-b border-white/[0.07]">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="h-10 w-10 bg-blue-600/10 rounded-xl flex items-center justify-center text-blue-500 border border-blue-500/20 shrink-0 shadow-lg">
+                <FileText size={18} />
               </div>
-              <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-white truncate max-w-[180px] sm:max-w-sm">{file.filename}</h2>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className="text-[10px] text-slate-500 uppercase tracking-wider">{type}</span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-[13px] font-black text-white italic truncate max-w-[200px] sm:max-w-md tracking-tight">{file.filename}</h2>
+                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                  <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">{type}</span>
                   {file.analyzed && (
-                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-bold uppercase">
-                      <Shield size={8} /> AI Analyzed
+                    <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest">
+                      <Shield size={10} /> Safe Scan
                     </span>
                   )}
                   {!file.analyzed && type?.startsWith('image/') && (
                     <button onClick={handleAnalyze} disabled={isAnalyzing}
-                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[9px] font-bold uppercase hover:bg-indigo-500/20 transition-all disabled:opacity-50">
-                      <Sparkles size={8} className={isAnalyzing ? 'animate-pulse' : ''} />
-                      {isAnalyzing ? 'Analyzing…' : 'Analyze'}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/20 text-[9px] font-black uppercase tracking-widest hover:bg-indigo-500/30 transition-all disabled:opacity-50">
+                      <Sparkles size={10} className={isAnalyzing ? 'animate-pulse' : ''} />
+                      {isAnalyzing ? 'Scanning…' : 'Scan'}
                     </button>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-1 shrink-0 ml-2">
+            <div className="flex items-center gap-2 justify-end pt-4 sm:pt-0 border-t border-white/[0.03] sm:border-0">
               <a href={url} target="_blank" rel="noopener noreferrer"
-                className="p-2 text-slate-500 hover:text-slate-200 hover:bg-white/5 rounded-lg transition-all" title="Open in new tab">
-                <ExternalLink className="h-4 w-4" />
+                className="p-3 text-slate-500 hover:text-white hover:bg-white/5 rounded-xl transition-all" title="Open External">
+                <ExternalLink size={18} />
               </a>
               <a href={url} download={file.filename}
-                className="p-2 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all" title="Download">
-                <Download className="h-4 w-4" />
+                className="p-3 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl transition-all" title="Download">
+                <Download size={18} />
               </a>
-              {/* Close button — always visible */}
+              <div className="w-px h-8 bg-white/[0.05] mx-1" />
               <button
                 onClick={onClose}
-                className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-                aria-label="Close preview"
+                className="p-3 text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all"
               >
-                <X className="h-4 w-4" />
+                <X size={20} />
               </button>
             </div>
           </div>
 
-          {/* ── Tags section ── */}
-          <div className="px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
-            <div className="flex items-center gap-2 mb-2">
-              <Tag size={11} className="text-indigo-400" />
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Labels</span>
-              {(isUpdating || isAnalyzing) && <Loader2 size={11} className="animate-spin text-blue-400 ml-1" />}
+          {/* Tags */}
+          <div className="px-6 py-4 border-b border-white/[0.06] bg-white/[0.01]">
+            <div className="flex items-center gap-2 mb-3">
+              <Tag size={12} className="text-indigo-400" />
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Tags</span>
+              {isUpdating && <Loader2 size={12} className="animate-spin text-blue-400" />}
             </div>
             {isAnalyzing ? (
-              <div className="flex gap-2 animate-pulse">
-                {[1,2,3].map(i => <div key={i} className="h-6 w-14 bg-slate-800 rounded-full" />)}
+              <div className="flex gap-2 animate-pulse mb-1">
+                {[1,2,3].map(i => <div key={i} className="h-7 w-16 bg-slate-900 rounded-lg" />)}
               </div>
             ) : (
               <TagCloud
@@ -172,8 +168,8 @@ export default function PreviewModal({ file, url, token, onUpdate, onClose }) {
             )}
           </div>
 
-          {/* ── Media viewer ── */}
-          <div className="flex items-center justify-center bg-slate-950/40 min-h-[200px] p-4">
+          {/* Viewer */}
+          <div className="flex items-center justify-center bg-slate-950/80 min-h-[300px] sm:min-h-[400px] p-6 sm:p-10 relative">
             <NSFWBlur moderationStatus={file.moderationStatus} className="w-full flex justify-center items-center">
               {renderViewer()}
             </NSFWBlur>

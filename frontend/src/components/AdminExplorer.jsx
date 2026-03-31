@@ -1,5 +1,4 @@
-import { FolderOpen, Eye, Trash2, Search, ExternalLink, Download, FileQuestion, AlertTriangle, Loader2, Database, Layers, RefreshCw } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { FolderOpen, Eye, Trash2, Search, AlertTriangle, Loader2, Database, Layers, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 
 const formatBytes = (bytes) => {
@@ -21,7 +20,7 @@ const ExtIcon = ({ filename }) => {
   const config = configs[ext] || 'bg-slate-800 text-slate-400 border-white/5';
   
   return (
-    <div className={`h-10 w-12 rounded-xl flex items-center justify-center text-[10px] font-black shrink-0 border shadow-inner group-hover:scale-110 transition-transform duration-500 ${config}`}>
+    <div className={`h-10 w-12 rounded-xl flex items-center justify-center text-[10px] font-black shrink-0 border shadow-inner ${config}`}>
       {ext}
     </div>
   );
@@ -37,108 +36,91 @@ const AdminExplorer = ({ files, loading, deletingId, onPreview, onDelete, onNext
   );
 
   return (
-    <div className="glass-premium rounded-[3rem] border border-white/[0.05] overflow-hidden">
-      <div className="px-10 py-8 border-b border-white/[0.05] bg-white/[0.01] flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+    <div className="glass-premium rounded-[2rem] sm:rounded-[3rem] border border-white/[0.05] overflow-hidden">
+      <div className="px-6 sm:px-10 py-6 sm:py-8 border-b border-white/[0.05] bg-white/[0.01] flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <h2 className="text-sm font-black text-white uppercase tracking-[0.3em] flex items-center gap-3">
-            <FolderOpen size={16} className="text-blue-400" /> Platform Storage
+          <h2 className="text-[13px] sm:text-sm font-black text-white uppercase tracking-[0.3em] flex items-center gap-3">
+            <FolderOpen size={16} className="text-blue-400" /> Global File Storage
           </h2>
-          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mt-2 opacity-60">
-            Global Object Index ({filtered.length} Indexed)
+          <p className="text-[9px] sm:text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mt-2 opacity-60">
+            All System Files ({filtered.length} Indexed)
           </p>
         </div>
         
-        <div className="relative group">
-          <div className="absolute inset-0 bg-blue-500/5 blur-xl group-focus-within:opacity-100 opacity-0 transition-opacity" />
+        <div className="relative group w-full lg:w-72">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors z-10" size={14} />
           <input 
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search Global Assets..."
-            className="bg-slate-950/60 border border-white/[0.05] focus:border-blue-500/40 rounded-2xl pl-12 pr-4 py-3 text-[11px] text-slate-100 placeholder-slate-600 w-full sm:w-72 transition-all uppercase tracking-[0.15em] font-black shadow-inner relative z-10"
+            placeholder="Search Files..."
+            className="bg-slate-950/60 border border-white/[0.05] focus:border-blue-500/40 rounded-xl sm:rounded-2xl pl-12 pr-4 py-3 text-[11px] text-slate-100 placeholder-slate-600 w-full transition-all uppercase tracking-[0.15em] font-black shadow-inner relative z-10"
           />
-          {search && (
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse z-10" />
-          )}
         </div>
       </div>
 
       <div className="divide-y divide-white/[0.03]">
         {filtered.length === 0 ? (
-          <div className="py-32 text-center flex flex-col items-center gap-4">
-            <div className="h-16 w-16 bg-slate-900 rounded-3xl flex items-center justify-center text-slate-700 border border-white/5 mb-2">
+          <div className="py-24 sm:py-32 text-center flex flex-col items-center gap-4">
+            <div className="h-14 w-14 sm:h-16 sm:w-16 bg-slate-900 rounded-2xl sm:rounded-3xl flex items-center justify-center text-slate-700 border border-white/5 mb-2">
                 <Database size={24} />
             </div>
-            <p className="text-[11px] font-black text-slate-600 uppercase tracking-[0.3em]">Zero Results in Search Index</p>
+            <p className="text-[10px] sm:text-[11px] font-black text-slate-600 uppercase tracking-[0.3em]">No Files Found</p>
           </div>
         ) : (
-          filtered.map((file, i) => (
-            <motion.div 
+          filtered.map((file) => (
+            <div 
               key={file.fileId}
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.03 }}
-              className="px-10 py-6 flex items-center gap-6 hover:bg-white/[0.01] transition-all group"
+              className="px-6 sm:px-10 py-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 hover:bg-white/[0.01] transition-all group relative overflow-hidden"
             >
-              <ExtIcon filename={file.filename} />
-
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-slate-200 truncate group-hover:text-blue-400 transition-colors uppercase tracking-tight">{file.filename}</p>
-                <div className="flex items-center gap-4 mt-2 text-[10px] font-black text-slate-500 uppercase tracking-widest opacity-60 flex-wrap">
-                  <span className="flex items-center gap-1.5"><Layers size={10} className="text-blue-500/50" /> {file.email || file.userId.slice(0, 12)}</span>
-                  <span className="h-1 w-1 rounded-full bg-slate-800" />
-                  <span>{formatBytes(file.size)}</span>
-                  <span className="h-1 w-1 rounded-full bg-slate-800" />
-                  <span>{new Date(file.uploadedAt).toLocaleDateString()}</span>
-                  {file.isNsfw && (
-                    <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/20 flex items-center gap-1.5 animate-pulse">
-                      <AlertTriangle size={10} /> SENSITIVE
-                    </span>
-                  )}
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                <ExtIcon filename={file.filename} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] sm:text-sm font-bold text-slate-200 truncate group-hover:text-blue-400 transition-colors uppercase tracking-tight">{file.filename}</p>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-widest opacity-60">
+                    <span className="flex items-center gap-1.5"><Layers size={10} className="text-blue-500/50" /> {file.email || file.userId.slice(0, 12)}</span>
+                    <span className="h-1 w-1 rounded-full bg-slate-800 hidden xs:inline" />
+                    <span>{formatBytes(file.size)}</span>
+                    <span className="h-1 w-1 rounded-full bg-slate-800 hidden xs:inline" />
+                    <span>{new Date(file.uploadedAt).toLocaleDateString()}</span>
+                    {file.isNsfw && (
+                      <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/20 flex items-center gap-1.5 animate-pulse">
+                        <AlertTriangle size={10} /> Flagged
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <motion.button 
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+              <div className="flex items-center gap-2 justify-end sm:justify-start border-t border-white/[0.03] pt-4 sm:pt-0 sm:border-0">
+                <button 
                   onClick={() => onPreview(file)}
-                  className="p-3.5 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-2xl transition-all border border-transparent hover:border-blue-500/20"
+                  className="p-2.5 sm:p-3.5 text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-xl sm:rounded-2xl transition-all border border-transparent hover:border-blue-500/20 flex-1 sm:flex-none flex items-center justify-center"
                 >
                   <Eye size={18} />
-                </motion.button>
-                <motion.button 
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                </button>
+                <button 
                   onClick={() => onDelete(file.userId, file.fileId)}
                   disabled={deletingId === file.fileId}
-                  className="p-3.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-2xl transition-all border border-transparent hover:border-rose-500/20"
+                  className="p-2.5 sm:p-3.5 text-slate-400 sm:text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl sm:rounded-2xl transition-all border border-transparent hover:border-rose-500/20 flex-1 sm:flex-none flex items-center justify-center"
                 >
                   {deletingId === file.fileId ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
-                </motion.button>
+                </button>
               </div>
-
-              {/* Hover Scan Effect */}
-              <div className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity overflow-hidden">
-                <div className="w-full h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent animate-scan" style={{ animationDuration: '3s' }} />
-              </div>
-            </motion.div>
+            </div>
           ))
         )}
       </div>
 
       {hasNext && (
-        <div className="px-10 py-8 border-t border-white/[0.05] flex justify-center bg-white/[0.01]">
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+        <div className="px-6 sm:px-10 py-6 sm:py-8 border-t border-white/[0.05] flex justify-center bg-white/[0.01]">
+          <button 
             onClick={onNext}
             disabled={loading}
-            className="px-8 py-4 rounded-[1.5rem] bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] text-[11px] font-black uppercase tracking-[0.25em] text-slate-300 transition-all flex items-center gap-3 shadow-lg"
+            className="w-full sm:w-auto px-8 py-4 rounded-xl sm:rounded-[1.5rem] bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] text-[10px] sm:text-[11px] font-black uppercase tracking-[0.25em] text-slate-300 transition-all flex items-center justify-center gap-3 shadow-lg hover:-translate-y-1 active:scale-[0.98]"
           >
             {loading ? <Loader2 size={14} className="animate-spin text-blue-500" /> : <RefreshCw size={14} className="text-blue-500" />}
-            Sync Forward Index
-          </motion.button>
+            Load More Files
+          </button>
         </div>
       )}
     </div>
