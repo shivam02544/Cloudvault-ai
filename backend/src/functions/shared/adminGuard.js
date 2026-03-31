@@ -29,22 +29,27 @@ function adminGuard(event) {
     };
   }
 
-  const groupList = [];
-  ['cognito:groups', 'groups', 'custom:groups', 'roles'].forEach((key) => {
-    const val = claims[key];
-    if (Array.isArray(val)) {
-      groupList.push(...val);
-    } else if (typeof val === 'string') {
-      if (val.startsWith('[')) {
-        try { groupList.push(...JSON.parse(val)); } catch (_) { groupList.push(val); }
-      } else {
-        // Plain string — could be "admin" or comma-separated "admin,users"
-        val.split(',').map(s => s.trim()).filter(Boolean).forEach(g => groupList.push(g));
+  // Direct check — Cognito HTTP API JWT authorizer passes groups as 'groups' key
+  const rawGroups = claims['cognito:groups'] || claims['groups'] || [];
+  
+  let groupList = [];
+  if (Array.isArray(rawGroups)) {
+    groupList = rawGroups;
+  } else if (typeof rawGroups === 'string') {
+    // Handle cases like '["admin"]', "[admin]", or "admin, user"
+    if (rawGroups.includes('[')) {
+      try {
+        groupList = JSON.parse(rawGroups);
+      } catch (e) {
+        // Fallback: strip brackets and split
+        groupList = rawGroups.replace(/[\[\]"]/g, '').split(',').map(s => s.trim());
       }
+    } else {
+      groupList = rawGroups.split(',').map(s => s.trim());
     }
-  });
-
-  const isAdmin = groupList.includes('admin') || claims['cognito:groups']?.includes('admin');
+  }
+  
+  const isAdmin = groupList.filter(Boolean).includes('admin');
 
   if (!isAdmin) {
     return {

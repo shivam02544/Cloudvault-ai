@@ -143,7 +143,10 @@ Resources:
       Handler: functions/confirmUpload.handler
       Environment:
         Variables:
+          FILE_TABLE: !Ref FileMetadataTable
+          UPLOAD_BUCKET: !Ref StorageBucket
           ANALYZE_FUNCTION: !Ref AnalyzeImageFunction
+
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref FileMetadataTable
@@ -345,6 +348,9 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: functions/adminListModeration.handler
+      Environment:
+        Variables:
+          FILE_TABLE: !Ref FileMetadataTable
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref FileMetadataTable
@@ -362,6 +368,9 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: functions/adminMarkSafe.handler
+      Environment:
+        Variables:
+          FILE_TABLE: !Ref FileMetadataTable
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref FileMetadataTable
@@ -381,7 +390,9 @@ Resources:
       Handler: functions/adminListUsers.handler
       Environment:
         Variables:
+          FILE_TABLE: !Ref FileMetadataTable
           COGNITO_USER_POOL_ID: !Ref CloudVaultUserPool
+
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref FileMetadataTable
@@ -404,6 +415,9 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: functions/adminSuspendUser.handler
+      Environment:
+        Variables:
+          FILE_TABLE: !Ref FileMetadataTable
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref FileMetadataTable
@@ -429,6 +443,9 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: functions/adminListFiles.handler
+      Environment:
+        Variables:
+          FILE_TABLE: !Ref FileMetadataTable
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref FileMetadataTable
@@ -446,6 +463,10 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: functions/adminDeleteFile.handler
+      Environment:
+        Variables:
+          FILE_TABLE: !Ref FileMetadataTable
+          UPLOAD_BUCKET: !Ref StorageBucket
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref FileMetadataTable
@@ -474,7 +495,10 @@ Resources:
       Handler: functions/adminNotifyUser.handler
       Environment:
         Variables:
+          FILE_TABLE: !Ref FileMetadataTable
           COGNITO_USER_POOL_ID: !Ref CloudVaultUserPool
+          UPLOAD_BUCKET: !Ref StorageBucket
+
       Policies:
         - DynamoDBWritePolicy:
             TableName: !Ref FileMetadataTable
@@ -499,6 +523,9 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: functions/adminSetUserLimits.handler
+      Environment:
+        Variables:
+          FILE_TABLE: !Ref FileMetadataTable
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref FileMetadataTable
@@ -518,6 +545,9 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: functions/getNotifications.handler
+      Environment:
+        Variables:
+          FILE_TABLE: !Ref FileMetadataTable
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref FileMetadataTable
@@ -535,6 +565,9 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: functions/registerUser.handler
+      Environment:
+        Variables:
+          FILE_TABLE: !Ref FileMetadataTable
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref FileMetadataTable
@@ -554,6 +587,9 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: functions/getAccountStatus.handler
+      Environment:
+        Variables:
+          FILE_TABLE: !Ref FileMetadataTable
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref FileMetadataTable
@@ -573,7 +609,9 @@ Resources:
       Handler: functions/adminApproveUser.handler
       Environment:
         Variables:
+          FILE_TABLE: !Ref FileMetadataTable
           COGNITO_USER_POOL_ID: !Ref CloudVaultUserPool
+
       Policies:
         - DynamoDBReadPolicy:
             TableName: !Ref FileMetadataTable
@@ -599,6 +637,33 @@ Resources:
             ApiId: !Ref CloudVaultApi
             Path: /admin/users/{userId}/deny
             Method: POST
+
+  # ─── Lambda: Reset Vault (Cleanup & Refresh) ────────────────────────────────
+  ResetVaultFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/resetVault.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref FileMetadataTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+        - S3ReadPolicy:
+            BucketName: !Ref StorageBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:DeleteObject
+              Resource: !Sub "arn:aws:s3:::${StorageBucket}/*"
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /files/reset
+            Method: POST
+
 
 
 Outputs:

@@ -35,8 +35,12 @@ exports.handler = async (event) => {
     }
 
     if (isApi) {
-      const suspensionError = await checkSuspension(userId, docClient, tableName);
-      if (suspensionError) return suspensionError;
+      try {
+        const suspensionError = await checkSuspension(userId, docClient, tableName);
+        if (suspensionError) return suspensionError;
+      } catch (suspErr) {
+        console.warn('checkSuspension failed (non-fatal):', suspErr.message);
+      }
     }
 
     // If metadata is missing (manual trigger), fetch it from DynamoDB

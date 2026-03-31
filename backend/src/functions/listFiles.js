@@ -53,6 +53,7 @@ exports.handler = async (event) => {
     // (DECISIONS.md Phase 3: do NOT generate URLs eagerly for all files)
     const files = (result.Items || [])
       .filter((item) => item.status !== 'deleted')
+      .filter((item) => !item.fileId.startsWith('__')) // exclude system records (__STATS__, __NOTIF__, etc.)
       .filter((item) => {
         if (!searchTerm) return true;
         

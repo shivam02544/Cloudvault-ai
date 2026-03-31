@@ -17,24 +17,17 @@ exports.handler = async (event) => {
     const claims = authorizer.jwt?.claims || authorizer.claims || {};
     
     // DEBUG: Log ALL claims to CloudWatch for precision debugging
-    console.log('[AdminStats] Full Claims Object:', JSON.stringify(claims));
-
-    // Flexible group detection — handles array, JSON-string array, and plain string
-    const groupList = [];
-    ['cognito:groups', 'groups', 'custom:groups', 'roles'].forEach(key => {
-      const val = claims[key];
-      if (Array.isArray(val)) {
-        groupList.push(...val);
-      } else if (typeof val === 'string') {
-        if (val.startsWith('[')) {
-          try { groupList.push(...JSON.parse(val)); } catch { groupList.push(val); }
-        } else {
-          // Plain string — could be "admin" or comma-separated "admin,users"
-          val.split(',').map(s => s.trim()).filter(Boolean).forEach(g => groupList.push(g));
-        }
-      }
-    });
-    const isAdmin = groupList.includes('admin');
+    // Direct check — the Cognito HTTP API JWT authorizer passes groups as 'groups' key
+    const rawGroups = claims['cognito:groups'] || claims['groups'] || [];
+    
+    let groupList = [];
+    if (Array.isArray(rawGroups)) {
+      groupList = rawGroups;
+    } else if (typeof rawGroups === 'string') {
+      // Handle cases like '[admin]', '["admin"]', or "admin"
+      groupList = rawGroups.replace(/[\[\]"]/g, '').split(',').map(s => s.trim());
+    }
+    const isAdmin = groupList.filter(Boolean).includes('admin');
 
     if (!isAdmin) {
       console.warn(`[AdminStats] Unauthorized access attempt. User: ${claims.email || claims.sub}. Claims: ${JSON.stringify(claims)}`);
@@ -81,14 +74,22 @@ exports.handler = async (event) => {
       }),
     };
   } catch (error) {
-    console.error(JSON.stringify({ 
-      event: 'ADMIN_STATS_ERROR', 
-      error: error.message 
-    }));
+
+    console.error('[AdminStats] CRITICAL_FAILURE:', {
+      message: error.message,
+      stack: error.stack,
+      region: process.env.AWS_REGION,
+      tableName: process.env.FILE_TABLE,
+      event: JSON.stringify(event.requestContext?.authorizer)
+    });
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Internal Server Error', message: 'Failed to fetch admin statistics' }),
+      body: JSON.stringify({ 
+        error: 'Internal Server Error', 
+        message: 'Failed to fetch admin statistics',
+        detail: error.name // Surface error class for immediate diagnosis
+      }),
     };
   }
 };
