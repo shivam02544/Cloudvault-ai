@@ -28,8 +28,12 @@ exports.handler = async (event) => {
 
     const tableName = process.env.FILE_TABLE;
 
-    const suspensionError = await checkSuspension(userId, docClient, tableName);
-    if (suspensionError) return suspensionError;
+    try {
+      const suspensionError = await checkSuspension(userId, docClient, tableName);
+      if (suspensionError) return suspensionError;
+    } catch (suspErr) {
+      console.warn('checkSuspension failed (non-fatal):', suspErr.message);
+    }
 
     // Fetch the file record to get the S3 key and size
     const res = await docClient.send(

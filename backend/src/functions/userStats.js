@@ -24,8 +24,13 @@ exports.handler = async (event) => {
 
     const tableName = process.env.FILE_TABLE;
 
-    const suspensionError = await checkSuspension(userId, docClient, tableName);
-    if (suspensionError) return suspensionError;
+    // checkSuspension is non-fatal — if it throws, proceed normally
+    try {
+      const suspensionError = await checkSuspension(userId, docClient, tableName);
+      if (suspensionError) return suspensionError;
+    } catch (suspErr) {
+      console.warn('checkSuspension failed (non-fatal):', suspErr.message);
+    }
 
     const res = await docClient.send(
       new GetCommand({

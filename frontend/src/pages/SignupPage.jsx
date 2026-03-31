@@ -40,13 +40,19 @@ export default function SignupPage() {
       const idToken = session.getIdToken().getJwtToken();
 
       // 3. Register user in DynamoDB (creates __STATS__ with status: pending)
-      const res = await axios.post(`${API_URL}/auth/register`, {}, {
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
+      // Non-fatal: if this fails, show pending screen anyway and let user retry
+      let status = 'pending';
+      try {
+        const res = await axios.post(`${API_URL}/auth/register`, {}, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        status = res.data.status || 'pending';
+      } catch (regErr) {
+        console.warn('Register call failed, defaulting to pending:', regErr.message);
+        // Still show pending — admin can approve manually
+      }
 
-      const status = res.data.status;
       if (status === 'active') {
-        // Admin pre-approved or already registered — go straight to dashboard
         navigate('/');
       } else if (status === 'denied') {
         setStage('denied');

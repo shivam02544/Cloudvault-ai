@@ -23,8 +23,12 @@ exports.handler = async (event) => {
     }
     const tableName = process.env.FILE_TABLE;
 
-    const suspensionError = await checkSuspension(userId, docClient, tableName);
-    if (suspensionError) return suspensionError;
+    try {
+      const suspensionError = await checkSuspension(userId, docClient, tableName);
+      if (suspensionError) return suspensionError;
+    } catch (suspErr) {
+      console.warn('checkSuspension failed (non-fatal):', suspErr.message);
+    }
 
     // Query by userId (HASH key) — NOT a Scan (DECISIONS.md Phase 3)
     const result = await docClient.send(

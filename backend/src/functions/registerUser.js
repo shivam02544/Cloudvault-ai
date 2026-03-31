@@ -65,7 +65,7 @@ exports.handler = async (event) => {
       const rec = await docClient.send(new GetCommand({ TableName: tableName, Key: { userId, fileId: '__STATS__' } }));
       return { statusCode: 200, headers, body: JSON.stringify({ status: rec.Item?.status || 'pending' }) };
     }
-    console.error('REGISTER_USER_ERROR:', err);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Internal Server Error' }) };
+    console.error('REGISTER_USER_ERROR:', err.name, err.message);
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Internal Server Error', detail: err.message }) };
   }
 };

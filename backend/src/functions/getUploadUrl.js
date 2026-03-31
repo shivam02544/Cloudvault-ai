@@ -45,8 +45,12 @@ exports.handler = async (event) => {
     // Quota Enforcement (Phase 7 Wave 2)
     const tableName = process.env.FILE_TABLE;
 
-    const suspensionError = await checkSuspension(userId, docClient, tableName);
-    if (suspensionError) return suspensionError;
+    try {
+      const suspensionError = await checkSuspension(userId, docClient, tableName);
+      if (suspensionError) return suspensionError;
+    } catch (suspErr) {
+      console.warn('checkSuspension failed (non-fatal):', suspErr.message);
+    }
     const statsRes = await docClient.send(
       new GetCommand({
         TableName: tableName,

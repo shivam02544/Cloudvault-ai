@@ -22,8 +22,8 @@ exports.handler = async (event) => {
     }));
 
     if (!res.Item) {
-      // No STATS record yet — treat as pending (user hasn't called /auth/register yet)
-      return { statusCode: 200, headers, body: JSON.stringify({ status: 'pending' }) };
+      // No STATS record — treat as active (admin users created via CLI won't have one)
+      return { statusCode: 200, headers, body: JSON.stringify({ status: 'active' }) };
     }
 
     return {

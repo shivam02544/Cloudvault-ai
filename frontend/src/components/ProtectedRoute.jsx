@@ -78,13 +78,13 @@ export default function ProtectedRoute({ children }) {
 
   useEffect(() => {
     if (!token) return;
-    // Admins bypass the approval check
+    // Admins bypass the approval check — they're always active
     if (isAdmin) { setAccountStatus('active'); return; }
 
     setStatusLoading(true);
     axios.get(`${API_URL}/auth/status`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => setAccountStatus(r.data.status || 'active'))
-      .catch(() => setAccountStatus('active')) // fail-open: don't block on network error
+      .catch(() => setAccountStatus('active')) // fail-open on network error
       .finally(() => setStatusLoading(false));
   }, [token, isAdmin]);
 

@@ -38,8 +38,12 @@ exports.handler = async (event) => {
     const tableName = process.env.FILE_TABLE;
     const bucketName = process.env.UPLOAD_BUCKET;
 
-    const suspensionError = await checkSuspension(userId, docClient, tableName);
-    if (suspensionError) return suspensionError;
+    try {
+      const suspensionError = await checkSuspension(userId, docClient, tableName);
+      if (suspensionError) return suspensionError;
+    } catch (suspErr) {
+      console.warn('checkSuspension failed (non-fatal):', suspErr.message);
+    }
 
     // Admin preview: allow admin to fetch URL for another user's file
     const targetUserId = event.queryStringParameters?.targetUserId;
