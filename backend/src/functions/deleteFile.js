@@ -59,15 +59,22 @@ exports.handler = async (event) => {
       new DeleteCommand({ TableName: tableName, Key: { userId, fileId } })
     );
 
-    // Decrement user stats
-    await docClient.send(
-      new UpdateCommand({
-        TableName: tableName,
-        Key: { userId, fileId: '__STATS__' },
-        UpdateExpression: 'ADD fileCount :dec, totalBytesUsed :sizedec',
-        ExpressionAttributeValues: { ':dec': -1, ':sizedec': -(size || 0) },
-      })
-    );
+    // Decrement user stats (only if STATS record exists)
+    try {
+      await docClient.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { userId, fileId: '__STATS__' },
+          UpdateExpression: 'ADD fileCount :dec, totalBytesUsed :sizedec',
+          ExpressionAttributeValues: { ':dec': -1, ':sizedec': -(size || 0) },
+          ConditionExpression: 'attribute_exists(fileId)',
+        })
+      );
+    } catch (statsErr) {
+      if (statsErr.name !== 'ConditionalCheckFailedException') {
+        console.warn('STATS_DECREMENT_FAILED:', statsErr.message);
+      }
+    }
 
     return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: 'File deleted successfully' }) };
   } catch (error) {

@@ -55,15 +55,13 @@ function App() {
   }, [searchTerm]);
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       axios.get(`${API_URL}/files`, { headers: { Authorization: `Bearer ${token}` } }),
       axios.get(`${API_URL}/files/stats`, { headers: { Authorization: `Bearer ${token}` } }),
-    ]).then(([filesRes, statsRes]) => {
-      setFiles(filesRes.data?.files || []);
-      setStats(statsRes.data || { storageUsed: 0, maxStorage: 5 * 1024 * 1024 * 1024 });
-    }).catch(err => {
-      console.error('Failed to fetch dashboard data:', err);
-      setLoadError(true);
+    ]).then(([filesResult, statsResult]) => {
+      if (filesResult.status === 'fulfilled') setFiles(filesResult.value.data?.files || []);
+      if (statsResult.status === 'fulfilled') setStats(statsResult.value.data || { storageUsed: 0, maxStorage: 5 * 1024 * 1024 * 1024 });
+      if (filesResult.status === 'rejected' && statsResult.status === 'rejected') setLoadError(true);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -114,7 +112,9 @@ function App() {
     return true;
   });
 
-  const usagePercent = Math.min((stats.storageUsed / stats.maxStorage) * 100, 100);
+  const usagePercent = stats
+    ? Math.min(((stats.storageUsed || 0) / (stats.maxStorage || 5 * 1024 * 1024 * 1024)) * 100, 100)
+    : 0;
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-animated">

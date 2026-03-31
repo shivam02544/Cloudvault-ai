@@ -27,9 +27,9 @@ exports.handler = async (event) => {
   const values = {};
   const names = {};
 
-  if (storageLimit !== undefined) { updates.push('storageLimit = :sl'); values[':sl'] = storageLimit; }
-  if (allowedTypes !== undefined) { updates.push('allowedTypes = :at'); values[':at'] = allowedTypes; }
-  if (maxFileSize !== undefined) { updates.push('maxFileSize = :mf'); values[':mf'] = maxFileSize; }
+  if (storageLimit !== undefined && storageLimit > 0) { updates.push('storageLimit = :sl'); values[':sl'] = storageLimit; }
+  if (allowedTypes !== undefined && Array.isArray(allowedTypes)) { updates.push('allowedTypes = :at'); values[':at'] = allowedTypes; }
+  if (maxFileSize !== undefined && maxFileSize > 0) { updates.push('maxFileSize = :mf'); values[':mf'] = maxFileSize; }
   if (notes !== undefined) { updates.push('#notes = :n'); values[':n'] = notes; names['#notes'] = 'notes'; }
 
   if (updates.length === 0) {

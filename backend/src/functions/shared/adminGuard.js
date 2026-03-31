@@ -35,11 +35,11 @@ function adminGuard(event) {
     if (Array.isArray(val)) {
       groupList.push(...val);
     } else if (typeof val === 'string') {
-      // Handle JSON-encoded array e.g. '["admin","users"]' sent by Cognito HTTP API authorizer
       if (val.startsWith('[')) {
         try { groupList.push(...JSON.parse(val)); } catch (_) { groupList.push(val); }
       } else {
-        groupList.push(val);
+        // Plain string — could be "admin" or comma-separated "admin,users"
+        val.split(',').map(s => s.trim()).filter(Boolean).forEach(g => groupList.push(g));
       }
     }
   });

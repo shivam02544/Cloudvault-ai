@@ -18,9 +18,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isVerifying, setIsVerifying] = useState(!!searchParams.get('email'));
-  // 'form' | 'verifying' | 'pending' | 'denied' | 'approved'
   const [stage, setStage] = useState(searchParams.get('email') ? 'verifying' : 'form');
-  const [tempToken, setTempToken] = useState(null); // token after login, before status check
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError(''); setLoading(true);
@@ -40,7 +38,6 @@ export default function SignupPage() {
       // 2. Log in to get a token so we can call /auth/register
       const session = await login(email, password);
       const idToken = session.getIdToken().getJwtToken();
-      setTempToken(idToken);
 
       // 3. Register user in DynamoDB (creates __STATS__ with status: pending)
       const res = await axios.post(`${API_URL}/auth/register`, {}, {

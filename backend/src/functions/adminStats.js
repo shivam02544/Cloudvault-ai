@@ -19,14 +19,19 @@ exports.handler = async (event) => {
     // DEBUG: Log ALL claims to CloudWatch for precision debugging
     console.log('[AdminStats] Full Claims Object:', JSON.stringify(claims));
 
-    // Flexible group detection
+    // Flexible group detection — handles array, JSON-string array, and plain string
     const groupList = [];
     ['cognito:groups', 'groups', 'custom:groups', 'roles'].forEach(key => {
       const val = claims[key];
-      if (Array.isArray(val)) groupList.push(...val);
-      else if (typeof val === 'string') {
-        if (val.startsWith('[')) { try { groupList.push(...JSON.parse(val)); } catch { groupList.push(val); } }
-        else groupList.push(val);
+      if (Array.isArray(val)) {
+        groupList.push(...val);
+      } else if (typeof val === 'string') {
+        if (val.startsWith('[')) {
+          try { groupList.push(...JSON.parse(val)); } catch { groupList.push(val); }
+        } else {
+          // Plain string — could be "admin" or comma-separated "admin,users"
+          val.split(',').map(s => s.trim()).filter(Boolean).forEach(g => groupList.push(g));
+        }
       }
     });
     const isAdmin = groupList.includes('admin');

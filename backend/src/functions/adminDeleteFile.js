@@ -69,18 +69,22 @@ exports.handler = async (event) => {
       })
     );
 
-    // 8. Update STATS_Record to decrement counts
-    await docClient.send(
-      new UpdateCommand({
-        TableName: process.env.FILE_TABLE,
-        Key: { userId, fileId: '__STATS__' },
-        UpdateExpression: 'ADD fileCount :dec, totalBytesUsed :sizedec',
-        ExpressionAttributeValues: {
-          ':dec': -1,
-          ':sizedec': -(size || 0),
-        },
-      })
-    );
+    // 8. Update STATS_Record to decrement counts (non-fatal if missing)
+    try {
+      await docClient.send(
+        new UpdateCommand({
+          TableName: process.env.FILE_TABLE,
+          Key: { userId, fileId: '__STATS__' },
+          UpdateExpression: 'ADD fileCount :dec, totalBytesUsed :sizedec',
+          ExpressionAttributeValues: { ':dec': -1, ':sizedec': -(size || 0) },
+          ConditionExpression: 'attribute_exists(fileId)',
+        })
+      );
+    } catch (statsErr) {
+      if (statsErr.name !== 'ConditionalCheckFailedException') {
+        console.warn('ADMIN_STATS_DECREMENT_FAILED:', statsErr.message);
+      }
+    }
 
     // 9. Return success
     return {

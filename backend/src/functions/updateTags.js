@@ -43,11 +43,11 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) };
     }
 
-    if (!Array.isArray(tags)) {
+    if (!Array.isArray(tags) || tags.length > 50 || tags.some(t => typeof t !== 'string' || t.length > 100)) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Tags must be an array' }),
+        body: JSON.stringify({ error: 'Tags must be an array of strings (max 50 tags, 100 chars each)' }),
       };
     }
 

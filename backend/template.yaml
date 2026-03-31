@@ -482,7 +482,9 @@ Resources:
             - Effect: Allow
               Action:
                 - cognito-idp:AdminGetUser
-              Resource: !GetAtt CloudVaultUserPool.Arn
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: "*"
       Events:
         ApiEvent:
           Type: HttpApi
@@ -581,7 +583,9 @@ Resources:
             - Effect: Allow
               Action:
                 - cognito-idp:AdminGetUser
-              Resource: !GetAtt CloudVaultUserPool.Arn
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: "*"
       Events:
         ApproveEvent:
           Type: HttpApi

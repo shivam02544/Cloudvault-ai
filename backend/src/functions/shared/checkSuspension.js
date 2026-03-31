@@ -6,9 +6,11 @@ const headers = {
 };
 
 /**
- * Checks whether a user is blocked (suspended, pending, or denied).
- * Returns null if the user is active or has no STATS_Record (fail-open for new users).
- * Returns a 403 response object if the account is not active.
+ * Checks whether a user is blocked from performing operations.
+ * - suspended: explicitly blocked by admin
+ * - denied: registration was rejected
+ * - pending: still awaiting approval (blocked from dashboard via ProtectedRoute, but API calls allowed)
+ * Returns null if the user can proceed.
  */
 async function checkSuspension(userId, docClient, tableName) {
   const res = await docClient.send(
@@ -23,13 +25,12 @@ async function checkSuspension(userId, docClient, tableName) {
   if (status === 'suspended') {
     return { statusCode: 403, headers, body: JSON.stringify({ error: 'Account suspended' }) };
   }
-  if (status === 'pending') {
-    return { statusCode: 403, headers, body: JSON.stringify({ error: 'Account pending approval' }) };
-  }
   if (status === 'denied') {
     return { statusCode: 403, headers, body: JSON.stringify({ error: 'Account access denied' }) };
   }
 
+  // 'pending', 'active', undefined — all allowed at the API level
+  // 'pending' is enforced at the frontend ProtectedRoute level only
   return null;
 }
 
