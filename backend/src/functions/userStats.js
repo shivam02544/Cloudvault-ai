@@ -40,6 +40,7 @@ exports.handler = async (event) => {
     );
 
     const stats = res.Item || { totalBytesUsed: 0, fileCount: 0 };
+    const DEFAULT_LIMIT = 5 * 1024 * 1024 * 1024; // 5GB
 
     return {
       statusCode: 200,
@@ -47,7 +48,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         storageUsed: stats.totalBytesUsed || 0,
         fileCount: stats.fileCount || 0,
-        maxStorage: 5 * 1024 * 1024 * 1024, // 5GB hardcoded limit for Milestone v1.2
+        maxStorage: stats.storageLimit || DEFAULT_LIMIT,
       }),
     };
   } catch (error) {

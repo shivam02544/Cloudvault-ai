@@ -1,12 +1,20 @@
-import { Cloud, ShieldCheck, LogOut, User } from 'lucide-react';
+import { Cloud, ShieldCheck, LogOut, User, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useVault } from '../hooks/useVault';
+import { useState } from 'react';
+import NotificationDropdown from './NotificationDropdown';
 
 const Navbar = () => {
   const { logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const vault = useVault();
   const isAdminPage = location.pathname.startsWith('/admin');
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const notifications = vault.notifications || [];
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <nav className="sticky top-0 z-[100] w-full border-b border-white/[0.05] bg-[#05080f]/60 backdrop-blur-2xl">
@@ -51,7 +59,31 @@ const Navbar = () => {
 
             <div className="w-px h-4 bg-white/10 mx-1 hidden sm:block" />
 
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl transition-all border relative group ${
+                  showNotifications 
+                    ? 'bg-blue-600/10 text-blue-400 border-blue-500/30' 
+                    : 'bg-white/5 text-slate-500 border-white/5 hover:bg-white/10 hover:text-slate-300'
+                }`}
+              >
+                <Bell size={16} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-rose-600 text-white text-[8px] font-black flex items-center justify-center rounded-full shadow-lg shadow-rose-600/40 border border-white/10 animate-bounce">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <NotificationDropdown 
+                  notifications={notifications} 
+                  onMarkRead={vault.actions.handleMarkNotificationRead}
+                  onClose={() => setShowNotifications(false)}
+                />
+              )}
+
               <button
                 onClick={logout}
                 title="Sign out"

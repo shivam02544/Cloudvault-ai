@@ -8,6 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 export const useVault = () => {
   const [files, setFiles] = useState([]);
   const [stats, setStats] = useState({ storageUsed: 0, maxStorage: 5 * 1024 * 1024 * 1024 });
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   
@@ -34,12 +35,14 @@ export const useVault = () => {
     setLoading(true);
     setLoadError(false);
     try {
-      const [filesRes, statsRes] = await Promise.all([
+      const [filesRes, statsRes, notifRes] = await Promise.all([
         axios.get(`${API_URL}/files`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API_URL}/files/stats`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_URL}/notifications`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       setFiles(filesRes.data?.files || []);
       setStats(statsRes.data || { storageUsed: 0, maxStorage: 5 * 1024 * 1024 * 1024 });
+      setNotifications(notifRes.data?.notifications || []);
     } catch (err) {
       console.error('Fetch Vault Error:', err);
       setLoadError(true);
@@ -75,6 +78,7 @@ export const useVault = () => {
     try {
       await axios.delete(`${API_URL}/files/${fileId}`, { headers: { Authorization: `Bearer ${token}` } });
       setFiles(prev => prev.filter(f => f.fileId !== fileId));
+      if (previewData?.file?.fileId === fileId) setPreviewData(null);
       addToast('File deleted', 'success');
     } catch { 
       addToast('Failed to delete file', 'error'); 
@@ -99,6 +103,15 @@ export const useVault = () => {
 
   const handleUpdateFile = (updated) => {
     setFiles(prev => prev.map(f => f.fileId === updated.fileId ? updated : f));
+  };
+
+  const handleMarkNotificationRead = async (notificationId) => {
+    try {
+      await axios.post(`${API_URL}/notifications/${notificationId}/read`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      setNotifications(prev => prev.map(n => n.notificationId === notificationId ? { ...n, read: true } : n));
+    } catch (err) {
+      console.error('Mark Notification Read Error:', err);
+    }
   };
 
   const handleResetVault = async () => {
@@ -128,14 +141,15 @@ export const useVault = () => {
     return true;
   });
 
-  const usagePercent = stats
-    ? Math.min(((stats.storageUsed || 0) / (stats.maxStorage || 5 * 1024 * 1024 * 1024)) * 100, 100)
+  const usagePercent = stats && stats.maxStorage
+    ? Math.min(((stats.storageUsed || 0) / stats.maxStorage) * 100, 100)
     : 0;
 
   return {
     files: filteredFiles,
     totalFiles: files.length,
     stats,
+    notifications,
     loading,
     loadError,
     viewMode, setViewMode,
@@ -150,6 +164,7 @@ export const useVault = () => {
       handleDelete,
       handleUploadSuccess,
       handleUpdateFile,
+      handleMarkNotificationRead,
       handleResetVault,
       fetchVault
     }

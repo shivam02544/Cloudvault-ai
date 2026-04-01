@@ -558,6 +558,25 @@ Resources:
             ApiId: !Ref CloudVaultApi
             Path: /notifications
             Method: GET
+  # ─── Lambda: Mark Notification Read (user) ───────────────────────────
+  MarkNotificationReadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: functions/markNotificationRead.handler
+      Environment:
+        Variables:
+          FILE_TABLE: !Ref FileMetadataTable
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref FileMetadataTable
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref CloudVaultApi
+            Path: /notifications/{notificationId}/read
+            Method: POST
 
   # ─── Lambda: Register User (post email-verify) ───────────────────────────────
   RegisterUserFunction:

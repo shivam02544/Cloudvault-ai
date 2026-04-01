@@ -124,6 +124,7 @@ export const useAdmin = () => {
       await axios.delete(`${API_URL}/admin/files/${userId}/${fileId}`, { headers: { Authorization: `Bearer ${token}` } });
       setFiles(prev => prev.filter(f => f.fileId !== fileId));
       setRiskyFiles(prev => prev.filter(f => f.fileId !== fileId));
+      fetchStats(); // Refresh dashboard metrics
       addToast('File permanently deleted', 'success');
       return true;
     } catch (e) {
