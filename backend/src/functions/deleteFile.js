@@ -63,7 +63,7 @@ exports.handler = async (event) => {
       new DeleteCommand({ TableName: tableName, Key: { userId, fileId } })
     );
 
-    // Decrement user stats (only if STATS record exists)
+    // Decrement user stats (Non-fatal fallback)
     try {
       await docClient.send(
         new UpdateCommand({
@@ -71,13 +71,11 @@ exports.handler = async (event) => {
           Key: { userId, fileId: '__STATS__' },
           UpdateExpression: 'ADD fileCount :dec, totalBytesUsed :sizedec',
           ExpressionAttributeValues: { ':dec': -1, ':sizedec': -(size || 0) },
-          ConditionExpression: 'attribute_exists(fileId)',
+          // No condition — ADD will create the record if missing (safe fallback)
         })
       );
     } catch (statsErr) {
-      if (statsErr.name !== 'ConditionalCheckFailedException') {
-        console.warn('STATS_DECREMENT_FAILED:', statsErr.message);
-      }
+      console.warn('STATS_DECREMENT_FAILED_NON_FATAL:', statsErr.message);
     }
 
     return { statusCode: 200, headers, body: JSON.stringify({ success: true, message: 'File deleted successfully' }) };

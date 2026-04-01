@@ -5,7 +5,7 @@ const NotificationDropdown = ({ notifications, onMarkRead, onClose }) => {
 
   return (
     <div 
-      className="absolute right-0 top-full mt-4 w-[320px] sm:w-[400px] bg-slate-950/95 backdrop-blur-3xl rounded-[2rem] border border-white/[0.1] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300 z-[200]"
+      className="absolute right-0 top-full mt-4 w-[320px] sm:w-[400px] bg-[#0a0f1d] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-[2rem] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300 z-[200]"
       onClick={e => e.stopPropagation()}
     >
       <div className="px-6 py-5 border-b border-white/[0.05] flex items-center justify-between bg-white/[0.02]">

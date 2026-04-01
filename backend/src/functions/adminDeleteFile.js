@@ -69,7 +69,7 @@ exports.handler = async (event) => {
       })
     );
 
-    // 8. Update STATS_Record to decrement counts (non-fatal if missing)
+    // Update STATS_Record to decrement counts (Non-fatal fallback)
     try {
       await docClient.send(
         new UpdateCommand({
@@ -77,13 +77,10 @@ exports.handler = async (event) => {
           Key: { userId, fileId: '__STATS__' },
           UpdateExpression: 'ADD fileCount :dec, totalBytesUsed :sizedec',
           ExpressionAttributeValues: { ':dec': -1, ':sizedec': -(size || 0) },
-          ConditionExpression: 'attribute_exists(fileId)',
         })
       );
     } catch (statsErr) {
-      if (statsErr.name !== 'ConditionalCheckFailedException') {
-        console.warn('ADMIN_STATS_DECREMENT_FAILED:', statsErr.message);
-      }
+      console.warn('ADMIN_STATS_DECREMENT_FAILED:', statsErr.message);
     }
 
     // 9. Return success
