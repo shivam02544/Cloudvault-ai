@@ -10,6 +10,56 @@ const s3 = new S3Client({ region: process.env.AWS_REGION });
 const dbClient = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(dbClient);
 
+exports.handler = async (event) => {
+  try {
+    // Basic validation
+    if (!event.body) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Missing request body' }) };
+    }
+
+    let filename, contentType, size;
+    try {
+      ({ filename, contentType, size } = JSON.parse(event.body));
+    } catch {
+      return { statusCode: 400, body: JSON.stringify({ error: 'Invalid JSON body' }) };
+    }
+
+    if (!filename || !contentType) {
+      return { statusCode: 400, body: JSON.stringify({ error: 'filename and contentType are required' }) };
+    }
+
+    const fileId = randomUUID();
+    const headers = { 
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*'
+    };
+    const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
+    
+    if (!userId) {
+      return {
+        statusCode: 401,
+        headers,
+        body: JSON.stringify({ error: 'Unauthorized' }),
+      };
+    }
+
+    // Quota Enforcement (Phase 7 Wave 2)
+    const tableName = process.env.FILE_TABLE;
+
+    try {
+      const suspensionError = await checkSuspension(userId, docClient, tableName);
+      if (suspensionError) return suspensionError;
+    } catch (suspErr) {
+      console.warn('checkSuspension failed (non-fatal):', suspErr.message);
+    }
+
+    const statsRes = await docClient.send(
+      new GetCommand({
+        TableName: tableName,
+        Key: { userId, fileId: '__STATS__' },
+      })
+    );
+
     const DEFAULT_LIMIT = 5 * 1024 * 1024 * 1024; // 5GB
     const userLimit = statsRes.Item?.storageLimit || DEFAULT_LIMIT;
     const currentUsage = statsRes.Item?.totalBytesUsed || 0;
@@ -26,14 +76,13 @@ const docClient = DynamoDBDocumentClient.from(dbClient);
     }
     
     // Construct the S3 key
-    // Using a clear pattern: userId/fileId-filename
     const bucketName = process.env.UPLOAD_BUCKET;
     const key = `${userId}/${fileId}-${filename}`;
 
     const command = new PutObjectCommand({
       Bucket: bucketName,
       Key: key,
-      ContentType: contentType, // Required for presigned URL when client sends the file
+      ContentType: contentType, 
     });
 
     // Generate Pre-signed URL valid for 300 seconds (5 minutes)
@@ -41,10 +90,7 @@ const docClient = DynamoDBDocumentClient.from(dbClient);
 
     return {
       statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers,
       body: JSON.stringify({
         uploadUrl,
         fileId,
